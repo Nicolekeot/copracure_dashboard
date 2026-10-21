@@ -2484,20 +2484,20 @@ html[data-theme="dark"] .stat-val { color: #4ade80; }
     transform: none !important;
   }
 
-  /* 2. Piliting i-center ang Notifications Panel at lagyan ng dark overlay */
+  /* Piliting i-center ang Notifications Panel at lagyan ng dark overlay */
   .floating-dropdown.notif-dropdown-panel {
     position: fixed !important;
-    top: 50% !important;
-    left: 50% !important;
-    transform: translate(-50%, -50%) !important;
-    margin: 0 !important;
+    top: 8vh !important; /* Laging mag-uumpisa sa baba ng address bar */
+    left: 0 !important;
+    right: 0 !important;
+    margin: 0 auto !important; /* Gitna horizontally */
+    transform: none !important; /* Tinanggal ang translate na nagtutulak pataas */
     width: 92vw !important;
-    max-width: 400px !important; /* Para hindi masyadong banat sa tablet/laptop */
     height: auto !important;
-    max-height: 85vh !important;
+    max-height: 80vh !important; /* Papayagan ang scrolling kung mahaba */
     z-index: 2000 !important;
     box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.58), 0 20px 45px rgba(0, 0, 0, 0.28) !important;
-    overflow-y: auto !important; /* Papayagan ang scrolling sa loob kung sobrang haba */
+    overflow-y: auto !important; 
   }
 }
 
