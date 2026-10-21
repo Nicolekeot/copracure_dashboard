@@ -356,6 +356,14 @@ function validateSignupPasswordInput(inputEl, wrapEl, errorEl) {
  */
 function validateConfirmPasswordInput() {
   const passEl = document.getElementById("signup-password");
+  const passValid = validSignupPasswordInput(
+    passEL,
+    document.getElementById("signup-pass-wrap"),
+    document.getElementById("signup-pass-error")
+  );
+  if (!passValid) {
+    hasError = true;
+  }
   const confirmEl = document.getElementById("signup-confirm");
   const wrapEl = document.getElementById("signup-confirm-wrap");
   const errorEl = document.getElementById("signup-confirm-error");
