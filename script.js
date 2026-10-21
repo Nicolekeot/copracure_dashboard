@@ -986,25 +986,43 @@ function initUserProfileModal() {
     showToast("AccountUpdated!");
   });
 
-  btnDelete?.addEventListener("click", async () => {
+  btnDelete.addEventListener("click", async () => {
     const confirmed = window.confirm(
       `Are you sure you want to permanently delete the account of ${state.currentUserFullName}?`
     );
     if (!confirmed) return;
 
+    // 1. I-delete ang record mula sa Supabase 'registered_users' table
+    if (supabaseClient) {
+      try {
+        const { error } = await supabaseClient
+          .from("registered_users")
+          .delete()
+          .eq("identifier", state.currentUserIdentifier);
+
+        if (error) {
+          console.error("❌ Supabase Delete Error:", error.message);
+        } else {
+          console.log("✅ Account successfully deleted from Supabase!");
+        }
+      } catch (err) {
+        console.error("❌ System error deleting from Supabase:", err.message);
+      }
+    }
+
+    // 2. I-filter at alisin sa local storage ang account
     const accounts = getRegisteredAccounts().filter(
       (a) => a && typeof a.identifier === "string" && a.identifier.toLowerCase() !== state.currentUserIdentifier.toLowerCase()
     );
     saveRegisteredAccounts(accounts);
     localStorage.removeItem("copracure_active_session");
 
-    modal?.classList.remove("open");
+    // 3. I-reset ang view patungo sa Sign In screen
+    modal.classList.remove("open");
     document.getElementById("dashboard-view")?.classList.remove("active-view");
     document.getElementById("signin-view")?.classList.add("active-view");
-    const signinId = document.getElementById("signin-identifier");
-    const signinPass = document.getElementById("signin-password");
-    if (signinId) signinId.value = "";
-    if (signinPass) signinPass.value = "";
+    document.getElementById("signin-identifier").value = "";
+    document.getElementById("signin-password").value = "";
 
     showFormAlert("signin-alert-box", "Your account has been deleted.", false);
     showToast("Account deleted successfully.");
