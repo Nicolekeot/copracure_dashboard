@@ -246,10 +246,16 @@ document.addEventListener("DOMContentLoaded", () => {
   initLocal16x2LcdModal();
   initSupabaseRealtime();
 
+  // TAWAGIN DITO PARA GUMANA PAGKA-REFRESH:
+  checkActiveSession();
+
   document.getElementById("close-sms-banner").addEventListener("click", () => {
     document.getElementById("live-sms-banner").classList.remove("show");
   });
-  function checkActiveSession() {
+});
+
+// ILAGAY ANG FUNCTION SA LABAS NG DOMContentLoaded:
+function checkActiveSession() {
   try {
     const sessionRaw = localStorage.getItem("copracure_active_session");
     if (!sessionRaw) return;
@@ -262,8 +268,11 @@ document.addEventListener("DOMContentLoaded", () => {
       state.currentUser = account.fullName.split(" ")[0];
       state.currentUserIdentifier = account.identifier;
       state.smsRecipientNumber = account.identifier;
+      state.isFirstTimeLogin = false;
 
-      // Alisin ang active view sa signin at ilipat sa dashboard
+      document.getElementById("sms-active-number").textContent = account.identifier;
+      document.getElementById("sms-recipient-input").value = account.identifier;
+
       document.getElementById("signin-view")?.classList.remove("active-view");
       document.getElementById("signup-view")?.classList.remove("active-view");
       document.getElementById("dashboard-view")?.classList.add("active-view");
@@ -273,8 +282,7 @@ document.addEventListener("DOMContentLoaded", () => {
   } catch (e) {
     console.error("Session check failed:", e);
   }
-}
-});
+};
 
 /* ==========================================================================
    1. VALIDATORS (CONCISE ERROR MESSAGES)
@@ -753,7 +761,7 @@ function initAuthViews() {
     );
   });
 
-  // SIGN IN
+    // SIGN IN
   document.getElementById("signin-form").addEventListener("submit", async (e) => {
     e.preventDefault();
     hideFormAlert("signin-alert-box");
@@ -764,12 +772,6 @@ function initAuthViews() {
     const password = passEl.value;
 
     let hasError = false;
-
-    // Idagdag ito bago o matapos lumipat ng view sa signin-form
-    localStorage.setItem("copracure_active_session", JSON.stringify({
-      identifier: existingAccount.identifier,
-      fullName: existingAccount.fullName
-    }));
 
     // 1. Check Identifier (Email or Number) at Account Existence
     const idValid = validateIdentifierInput(idEl, document.getElementById("signin-id-wrap"), document.getElementById("signin-id-error"));
@@ -803,6 +805,12 @@ function initAuthViews() {
     }
 
     if (hasError) return;
+
+    // DITO DAPAT ILAGAY ANG ACTIVE SESSION SAVE (Pagkatapos ma-verify na walang error):
+    localStorage.setItem("copracure_active_session", JSON.stringify({
+      identifier: existingAccount.identifier,
+      fullName: existingAccount.fullName
+    }));
 
     // Proceed to login
     const previousLogins = Number(existingAccount.loginCount || 0);
@@ -838,12 +846,13 @@ function initAuthViews() {
 
   // LOG OUT
   document.getElementById("btn-logout").addEventListener("click", () => {
-   localStorage.removeItem("copracure_active_session"); // <-- Idagdag ito
+    localStorage.removeItem("copracure_active_session");
     dashboardView.classList.remove("active-view");
     signinView.classList.add("active-view");
     document.getElementById("signin-password").value = "";
     showToast("Signed out successfully.");
-});
+  });
+} // <-- IMPORTANTE: Pang-sara ito ng initAuthViews() function!
 
 /* ==========================================================================
    5. USER PROFILE MODAL (UPDATE ACCOUNT -> SENDS "AccountUpdated!" SMS)
@@ -2021,4 +2030,3 @@ function showToast(message) {
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3500);
 }
-};
