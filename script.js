@@ -845,11 +845,18 @@ function initAuthViews() {
     hasError = true;
 
     // 2. Check Password
-    if (existingAccount && !password) {
-      signinPassWrap?.classList.add("input-error");
-      if (signinPassErr) signinPassErr.textContent = "Please enter your password";
-      hasError = true;
-    } else if (existingAccount && password !== existingAccount.password) {
+if (!existingAccount) {
+  // Walang account: huwag magpatuloy sa password validation
+  hasError = true;
+} else if (!password) {
+  signinPassWrap?.classList.add("input-error");
+
+  if (signinPassErr) {
+    signinPassErr.textContent = "Please enter your password";
+  }
+
+  hasError = true;
+} else if (password !== existingAccount.password) {
   signinPassWrap?.classList.add("input-error");
 
   if (signinPassErr) {
@@ -857,6 +864,12 @@ function initAuthViews() {
   }
 
   hasError = true;
+} else {
+  signinPassWrap?.classList.remove("input-error");
+
+  if (signinPassErr) {
+    signinPassErr.textContent = "";
+  }
 }
 
     // I-save ang active session para manatili sa Dashboard kahit i-refresh ang browser
@@ -918,16 +931,19 @@ document.getElementById("btn-logout")?.addEventListener("click", () => {
   dashboardView?.classList.remove("active-view");
   signinView?.classList.add("active-view");
 
-  // I-reset ang sign-in form at lahat ng dating error
-  document.getElementById("signin-form")?.reset();
+  // I-reset ang password
+  const passInput = document.getElementById("signin-password");
+  if (passInput) passInput.value = "";
+
+  // Alisin ang lumang error messages at red borders
   hideFormAlert("signin-alert-box");
 
-  [
-    ["signin-id-wrap", "signin-id-error"],
-    ["signin-pass-wrap", "signin-pass-error"]
-  ].forEach(([wrapId, errorId]) => {
+  ["signin-id-wrap", "signin-pass-wrap"].forEach((id) => {
+    document.getElementById(id)?.classList.remove("input-error");
+  });
 
-    const errorEl = document.getElementById(errorId);
+  ["signin-id-error", "signin-pass-error"].forEach((id) => {
+    const errorEl = document.getElementById(id);
     if (errorEl) errorEl.textContent = "";
   });
 
@@ -994,6 +1010,12 @@ function initUserProfileModal() {
       accounts.push(updatedAccount);
     }
     saveRegisteredAccounts(accounts);
+    
+    // Huwag magpatuloy kung may validation error
+    if (hasError) return;
+
+    // Huwag gumawa ng session kung walang account
+    if (!existingAccount) return;
 
     localStorage.setItem(
       "copracure_active_session",
