@@ -2477,6 +2477,21 @@ html[data-theme="dark"] .stat-val { color: #4ade80; }
 
 @media (max-width: 768px) {
   .dashboard-shell {
+    /* I-center ang Notifications Panel sa mobile at lagyan ng dark overlay */
+  .floating-dropdown.notif-dropdown-panel {
+    position: fixed;
+    top: 0;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    margin: auto;
+    width: 92vw;
+    height: fit-content;
+    max-height: 85vh;
+    z-index: 2000; /* Siguraduhing nasa ibabaw ito ng lahat */
+    /* Ang box-shadow na ito ang magsisilbing dark background na katulad ng sa modal */
+    box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.58), 0 20px 45px rgba(0, 0, 0, 0.28);
+  }
     padding: 10px 12px 92px;
   }
 
