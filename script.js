@@ -340,9 +340,9 @@ function validateSignupPasswordInput(inputEl, wrapEl, errorEl) {
   if (!inputEl) return false;
   const val = inputEl.value;
 
-  if (val.length < PASSWORD_MIN_LENGTH) {
+  if (val.length  !==8) {
     if (wrapEl) wrapEl.classList.add("input-error");
-    if (errorEl) errorEl.textContent = "Please enter at least 8 characters";
+    if (errorEl) errorEl.textContent = "Please enter exactly 8 characters";
     return false;
   }
 
@@ -838,6 +838,15 @@ function initAuthViews() {
       signinPassWrap?.classList.add("input-error");
       if (signinPassErr) signinPassErr.textContent = "The password you enter is incorrect";
       showFormAlert("signin-alert-box", "The password you enter is incorrect", false);
+      hasError = true;
+    } else if (existingAccount && password !== existingAccount.password) {
+      signinPassWrap?.classList.add("input-error");
+      if (signinPassErr) signinPassErr.textContent = "The password you enter is incorrect";
+      
+      // IWASAN ANG DOBLENG ALERT: I-clear o huwag na tawagin ang showFormAlert dito 
+      // para sa ibaba lamang ng password field lumabas ang error message.
+      hideFormAlert("signin-alert-box"); 
+      
       hasError = true;
     } else {
       signinPassWrap?.classList.remove("input-error");
