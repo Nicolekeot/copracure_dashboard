@@ -20,7 +20,7 @@ const SUPABASE_ANON_KEY = "sb_publishable_ck7UlFR4ZoCBEmqgqx0KXA_7Kzzn4bg";
 
 let supabaseClient = null;
 if (window.supabase) {
-  supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  supabaseClient = window.supabase.createClient ("https://wvpyqzzcfzwtmcfaeejz.supabase.co, sb_publishable_ck7UlFR4ZoCBEmqgqx0KXA_7Kzzn4bg");
   console.log("Supabase Client Initialized Successfully!");
 } else {
   console.error("Supabase SDK not loaded! Check internet connection or adblockers.");
