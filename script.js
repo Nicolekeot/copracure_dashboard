@@ -986,7 +986,7 @@ function initUserProfileModal() {
     showToast("AccountUpdated!");
   });
 
-  btnDelete.addEventListener("click", async () => {
+  btnDelete?.addEventListener("click", async () => {
     const confirmed = window.confirm(
       `Are you sure you want to permanently delete the account of ${state.currentUserFullName}?`
     );
@@ -995,10 +995,11 @@ function initUserProfileModal() {
     // 1. I-delete ang record mula sa Supabase 'registered_users' table
     if (supabaseClient) {
       try {
+        // Sinisiguro nating mabubura kahit alin sa identifier o mobile_number ang tumutugma
         const { error } = await supabaseClient
           .from("registered_users")
           .delete()
-          .eq("identifier", state.currentUserIdentifier);
+          .or(`identifier.eq.${state.currentUserIdentifier},mobile_number.eq.${state.currentUserIdentifier}`);
 
         if (error) {
           console.error("❌ Supabase Delete Error:", error.message);
@@ -1018,11 +1019,14 @@ function initUserProfileModal() {
     localStorage.removeItem("copracure_active_session");
 
     // 3. I-reset ang view patungo sa Sign In screen
-    modal.classList.remove("open");
+    modal?.classList.remove("open");
     document.getElementById("dashboard-view")?.classList.remove("active-view");
     document.getElementById("signin-view")?.classList.add("active-view");
-    document.getElementById("signin-identifier").value = "";
-    document.getElementById("signin-password").value = "";
+    
+    const signinId = document.getElementById("signin-identifier");
+    const signinPass = document.getElementById("signin-password");
+    if (signinId) signinId.value = "";
+    if (signinPass) signinPass.value = "";
 
     showFormAlert("signin-alert-box", "Your account has been deleted.", false);
     showToast("Account deleted successfully.");
