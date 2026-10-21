@@ -1,0 +1,1377 @@
+<!DOCTYPE html>
+<html lang="en" data-theme="light">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CopraCure — Solar-Hybrid Dryer & Risk Reduction Dashboard</title>
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Playfair+Display:wght@700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Supabase JS SDK -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+  <!-- LIVE INCOMING SMS / EMAIL BANNER (Para lang sa mahahalagang Alert) -->
+  <div id="live-sms-banner" class="live-sms-banner">
+    <div class="sms-banner-icon"><i data-lucide="message-square-warning"></i></div>
+    <div class="sms-banner-body">
+      <div class="sms-banner-top">
+        <strong id="sms-banner-sender">COPRACURE IMPORTANT SMS ALERT • NOW</strong>
+        <span id="sms-banner-recipient">To: 09123456789</span>
+      </div>
+      <p id="sms-banner-text">SMS Content here...</p>
+    </div>
+    <button type="button" class="sms-banner-close" id="close-sms-banner">&times;</button>
+  </div>
+
+  <!-- ==========================================
+       1. SIGN IN PAGE
+       ========================================== -->
+  <section id="signin-view" class="auth-wrapper active-view">
+    <div class="auth-card fade-in-up">
+      <div class="brand-logo-auth">
+        <img
+          src="logo.png"
+          onerror="this.onerror=null; this.src='images/logo.png';"
+          alt="CopraCure Solar-Hybrid Dryer & Risk Reduction Logo"
+          class="copracure-img-logo"
+        />
+      </div>
+
+      <!-- Fixed "Welcome to CopraCure!" para kahit sinong account ang mag-sign in -->
+      <h1 class="auth-heading" id="signin-welcome-heading" data-i18n="welcome_copracure">Welcome to CopraCure!</h1>
+      <p class="auth-subheading" id="signin-welcome-sub" data-i18n="auth_sub">
+        Please enter your details to access the dashboard
+      </p>
+
+      <div id="signin-alert-box" class="auth-alert-box" style="display: none;"></div>
+
+      <form id="signin-form" class="auth-form" novalidate>
+        <div class="form-group">
+          <label for="signin-identifier" data-i18n="lbl_mobile_email">MOBILE NUMBER OR EMAIL</label>
+          <div class="input-with-icon" id="signin-id-wrap">
+            <i data-lucide="phone" class="input-icon"></i>
+            <input type="text" id="signin-identifier" placeholder="09123456789 or example@gmail.com" autocomplete="username" required />
+          </div>
+          <small class="field-error-msg" id="signin-id-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="signin-password" data-i18n="lbl_password">PASSWORD</label>
+          <div class="input-with-icon" id="signin-pass-wrap">
+            <i data-lucide="lock" class="input-icon"></i>
+            <input type="password" id="signin-password" placeholder="Enter your password" autocomplete="current-password" maxlength="8" required />
+            <button type="button" class="toggle-password" data-target="signin-password" aria-label="Toggle Password">
+              <i data-lucide="eye-off"></i>
+            </button>
+          </div>
+          <small class="field-error-msg" id="signin-pass-error"></small>
+        </div>
+
+        <div class="auth-options">
+          <label class="remember-label">
+            <input type="checkbox" id="remember-me" class="round-checkbox" checked />
+            <span data-i18n="remember_me">Remember</span>
+          </label>
+          <a href="#" class="forgot-link" id="forgot-password-link" data-i18n="forgot_pass">Forgot Password?</a>
+        </div>
+
+        <button type="submit" class="btn-auth-submit" data-i18n="btn_signin">Sign In</button>
+      </form>
+
+      <p class="auth-switch-text">
+        <span data-i18n="no_account">Don't have an account?</span>
+        <a href="#" id="go-to-signup" data-i18n="link_signup">Sign up</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       2. SIGN UP PAGE
+       ========================================== -->
+  <section id="signup-view" class="auth-wrapper">
+    <div class="auth-card fade-in-up">
+      <div class="brand-logo-auth">
+        <img
+          src="logo.png"
+          onerror="this.onerror=null; this.src='images/logo.png';"
+          alt="CopraCure Solar-Hybrid Dryer & Risk Reduction Logo"
+          class="copracure-img-logo"
+        />
+      </div>
+
+      <h1 class="auth-heading" data-i18n="create_account">Create An Account</h1>
+      <p class="auth-subheading" data-i18n="auth_sub">Please enter your details to access the dashboard</p>
+
+      <div id="signup-alert-box" class="auth-alert-box" style="display: none;"></div>
+
+      <form id="signup-form" class="auth-form" novalidate>
+        <div class="form-group">
+          <label for="signup-fullname" data-i18n="lbl_fullname">FULL NAME</label>
+          <div class="input-with-icon" id="signup-name-wrap">
+            <i data-lucide="user" class="input-icon"></i>
+            <input type="text" id="signup-fullname" placeholder="e.g. Juan Dela Cruz" required />
+          </div>
+          <small class="field-error-msg" id="signup-name-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="signup-identifier" data-i18n="lbl_mobile_email">MOBILE NUMBER OR EMAIL</label>
+          <div class="input-with-icon" id="signup-id-wrap">
+            <i data-lucide="phone" class="input-icon"></i>
+            <input type="text" id="signup-identifier" placeholder="09123456789 or example@gmail.com" required />
+          </div>
+          <small class="field-error-msg" id="signup-id-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="signup-password" data-i18n="lbl_password">PASSWORD</label>
+          <div class="input-with-icon" id="signup-pass-wrap">
+            <i data-lucide="lock" class="input-icon"></i>
+            <input type="password" id="signup-password" placeholder="At least 8 characters" required />
+            <button type="button" class="toggle-password" data-target="signup-password" aria-label="Toggle Password">
+              <i data-lucide="eye-off"></i>
+            </button>
+          </div>
+          <small class="field-error-msg" id="signup-pass-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="signup-confirm" data-i18n="lbl_confirm_pass">CONFIRM PASSWORD</label>
+          <div class="input-with-icon" id="signup-confirm-wrap">
+            <i data-lucide="lock" class="input-icon"></i>
+            <input type="password" id="signup-confirm" placeholder="Confirm your password" required />
+            <button type="button" class="toggle-password" data-target="signup-confirm" aria-label="Toggle Password">
+              <i data-lucide="eye-off"></i>
+            </button>
+          </div>
+          <small class="field-error-msg" id="signup-confirm-error"></small>
+        </div>
+
+        <button type="submit" class="btn-auth-submit" data-i18n="btn_signup">Sign Up</button>
+      </form>
+
+      <p class="auth-switch-text">
+        <span data-i18n="has_account">Already have an account?</span>
+        <a href="#" id="go-to-signin" data-i18n="btn_signin">Sign In</a>
+      </p>
+    </div>
+  </section>
+
+  <!-- ==========================================
+       3. MAIN DASHBOARD VIEW
+       ========================================== -->
+  <div id="dashboard-view" class="dashboard-shell">
+    
+    <!-- TOP NAVIGATION BAR -->
+    <header class="top-navbar fade-in-down">
+      <div class="brand-logo-nav">
+        <img
+          src="logo.png"
+          onerror="this.onerror=null; this.src='images/logo.png';"
+          alt="CopraCure Logo"
+          class="copracure-img-logo small"
+        />
+      </div>
+
+      <!-- Center Green Pill Navigation -->
+      <nav class="nav-pill-container" aria-label="Main Navigation">
+        <button class="nav-pill-btn active" data-section="section-overview" data-i18n="nav_dashboard">Dashboard</button>
+        <button class="nav-pill-btn" data-section="section-drying-sessions" data-i18n="nav_sessions">Drying Sessions</button>
+        <button class="nav-pill-btn" data-section="section-diagnostics" data-i18n="nav_datalogs">Data Logs</button>
+        <button class="nav-pill-btn" data-section="section-notifications-center" data-i18n="nav_notifications">Analytics Report</button>
+      </nav>
+
+      <!-- Right Action Area: Icon Buttons para sa Theme Mode, System Language, Notifications, at User Profile -->
+      <div class="nav-actions">
+        
+        <!-- ICON 1: THEME MODE TOGGLE -->
+        <button type="button" class="icon-circle-btn" id="btn-theme-toggle" title="Toggle Theme Mode (Light / Dark)">
+          <i data-lucide="sun" id="theme-toggle-icon"></i>
+        </button>
+
+        <!-- ICON 2: SYSTEM LANGUAGE TOGGLE -->
+        <button type="button" class="icon-circle-btn lang-icon-btn" id="btn-lang-toggle" title="Switch System Language (EN / TL)">
+          <i data-lucide="globe"></i>
+          <span class="mini-icon-badge" id="lang-badge-text">EN</span>
+        </button>
+
+        <!-- ICON 3: NOTIFICATIONS BELL -->
+        <div class="nav-dropdown-wrapper">
+          <button class="icon-circle-btn notification-btn" id="notif-bell-btn" title="Notifications & Important SMS Alerts">
+            <i data-lucide="bell"></i>
+            <span class="notif-badge" id="notif-count-badge">2</span>
+          </button>
+
+          <div id="notif-dropdown" class="floating-dropdown notif-dropdown-panel">
+            <div class="dropdown-header">
+              <strong data-i18n="notif_title">System Notifications</strong>
+              <div class="notif-header-actions">
+                <button type="button" class="text-action-btn" id="btn-mark-read" data-i18n="mark_read">Mark all read</button>
+                <button type="button" class="text-action-btn danger" id="btn-clear-notifs" data-i18n="clear_all">Clear</button>
+              </div>
+            </div>
+            <div class="auto-sms-pill-bar">
+              <i data-lucide="zap"></i>
+              <span>SMS Dispatch: <strong>IMPORTANT ALERTS ONLY</strong></span>
+            </div>
+            <div class="notif-list" id="notif-list-container"></div>
+          </div>
+        </div>
+
+        <!-- ICON 4: USER PROFILE -->
+        <div class="nav-dropdown-wrapper">
+          <button class="user-avatar-circle" id="btn-user-profile" title="User Profile (Update / Delete Account)">
+            <i data-lucide="user"></i>
+          </button>
+        </div>
+
+      </div>
+    </header>
+
+    <!-- BODY LAYOUT: LEFT SIDEBAR + MAIN WORKSPACE -->
+    <div class="dashboard-body">
+      
+      <!-- FLOATING LEFT SIDEBAR PILLS -->
+      <aside class="left-sidebar" aria-label="Quick Section Navigation">
+        <div class="sidebar-pill-group">
+          <button class="side-icon-btn active" data-scroll="section-overview" title="Dashboard Overview">
+            <i data-lucide="layout-dashboard"></i>
+          </button>
+          <button class="side-icon-btn" data-scroll="section-drying-sessions" title="Drying Sessions">
+            <i data-lucide="timer"></i>
+          </button>
+          <button class="side-icon-btn" data-scroll="section-mold-classification" title="Mold Classification (ESP32-CAM)">
+            <i data-lucide="scan-eye"></i>
+          </button>
+          <button class="side-icon-btn" data-scroll="section-control-system" title="Control System (Heater & Fans)">
+            <i data-lucide="sliders-horizontal"></i>
+          </button>
+        </div>
+
+        <div class="sidebar-pill-group">
+          <button class="side-icon-btn" data-scroll="alert-module-card" title="Preventive Alerts">
+            <i data-lucide="triangle-alert"></i>
+          </button>
+          <button class="side-icon-btn" data-scroll="section-calibration" title="Sensor Calibration (Admin/Developer)">
+            <i data-lucide="gauge"></i>
+          </button>
+          <button class="side-icon-btn" data-scroll="section-diagnostics" title="Data Logs & Trends">
+            <i data-lucide="bar-chart-2"></i>
+          </button>
+          <button class="side-icon-btn" data-scroll="section-notifications-center" title="Notification & SMS Center">
+            <i data-lucide="bell-ring"></i>
+          </button>
+        </div>
+
+        <div class="sidebar-pill-group">
+          <button class="side-icon-btn" id="btn-sync-telemetry" title="Sync ESP32 & Supabase Telemetry">
+            <i data-lucide="refresh-cw"></i>
+          </button>
+          <button class="side-icon-btn" id="btn-toggle-lcd" title="Local 16x2 I2C LCD Display Mirror">
+            <i data-lucide="monitor"></i>
+          </button>
+          <button class="side-icon-btn" id="btn-open-sms-settings" title="SMS Gateway Settings">
+            <i data-lucide="settings"></i>
+          </button>
+          <button class="side-icon-btn" id="btn-logout" title="Sign Out">
+            <i data-lucide="log-out"></i>
+          </button>
+        </div>
+      </aside>
+
+      <!-- MAIN SCROLLABLE WORKSPACE -->
+      <main class="main-workspace">
+
+        <!-- ==========================================
+             SECTION 1: DASHBOARD OVERVIEW & LIVE SENSOR CARDS
+             ========================================== -->
+        <section id="section-overview" class="dash-section animate-card">
+          <div class="welcome-banner" id="welcome-user-banner">
+            <h2>
+              <span id="welcome-greeting-prefix">Welcome to CopraCure Dashboard,</span>
+              <span class="user-highlight" id="display-user-name">Caocao!</span>
+            </h2>
+            <div class="connection-badges">
+              <button type="button" class="conn-badge online clickable-badge" id="btn-toggle-wifi-sim" title="Click to simulate Wi-Fi loss & Offline GSM SMS mode">
+                <span class="pulse-dot" id="wifi-pulse-dot"></span>
+                <span id="wifi-status-text">Wi-Fi Online • Critical SMS Ready</span>
+              </button>
+              <button type="button" class="conn-badge lcd-badge clickable-badge" id="btn-inline-lcd" title="Click to open 16x2 I2C LCD Display">
+                <i data-lucide="cpu"></i> 16x2 I2C LCD: <strong id="lcd-inline-text">T:56.1C RH:37.5%</strong>
+              </button>
+            </div>
+          </div>
+
+          <!-- 4 SENSOR METRIC CARDS -->
+          <div class="metrics-grid">
+            <!-- Card 1: Chamber Temperature -->
+            <div class="metric-card hover-lift">
+              <div class="metric-header">
+                <span class="metric-title" data-i18n="card_temp">CHAMBER TEMPERATURE</span>
+                <span class="metric-badge orange">°C</span>
+              </div>
+              <div class="metric-value text-orange" id="val-temperature">56.1</div>
+              <p class="metric-subtext" id="temp-sensor-status">SHT31 Sensor • Real-Time Telemetry</p>
+              <div class="temp-range-bar">
+                <div class="temp-segment seg-low"></div>
+                <div class="temp-segment seg-opt"></div>
+                <div class="temp-segment seg-high"></div>
+                <div class="temp-marker" id="temp-marker" style="left: 52%;"></div>
+              </div>
+              <div class="temp-range-labels">
+                <span>30 °C</span>
+                <span class="font-semibold">Optimal (50–60°C)</span>
+                <span>80 °C</span>
+              </div>
+            </div>
+
+            <!-- Card 2: Relative Humidity -->
+            <div class="metric-card hover-lift">
+              <div class="metric-header">
+                <span class="metric-title" data-i18n="card_rh">RELATIVE HUMIDITY</span>
+                <span class="metric-badge blue"><i data-lucide="droplets"></i></span>
+              </div>
+              <div class="metric-value text-blue"><span id="val-humidity">37.5</span> %</div>
+              <div class="metric-dual-sub">
+                <span>Target: &lt;35%</span>
+                <span>Fresh: ~85%</span>
+              </div>
+              <div class="rh-ring-row">
+                <div class="rh-donut spin-slow" id="rh-donut"></div>
+                <span class="rh-safe-text">Controlled Chamber RH (SHT31)</span>
+              </div>
+            </div>
+
+            <!-- Card 3: Copra Moisture -->
+            <div class="metric-card hover-lift">
+              <div class="metric-header">
+                <span class="metric-title" data-i18n="card_mc">COPRA MOISTURE</span>
+                <span class="metric-badge green"><i data-lucide="sprout"></i></span>
+              </div>
+              <div class="metric-value text-green"><span id="val-moisture">13.0</span> %</div>
+              <p class="metric-subtext tight">
+                Initial (Mi): 50.0% • (Target: ≤6.0% Wet Basis)<br/>
+                <small class="probe-note">Experimental Moisture Probe</small>
+              </p>
+              <div class="moisture-progress-labels">
+                <span>Mi 50%</span>
+                <span>Tracking</span>
+                <span>≤6%</span>
+              </div>
+              <div class="progress-track green-track">
+                <div class="progress-fill green-fill animated-bar" id="moisture-bar" style="width: 82%;"></div>
+              </div>
+            </div>
+
+            <!-- Card 4: Est. Completion / Drying Duration -->
+            <div class="metric-card hover-lift">
+              <div class="metric-header">
+                <span class="metric-title" data-i18n="card_est">EST. COMPLETION (48H TRIAL)</span>
+                <span class="metric-badge purple"><i data-lucide="clock"></i></span>
+              </div>
+              <div class="metric-value text-purple" id="val-completion">13h 38m</div>
+              <p class="metric-subtext">
+                Elapsed: <strong id="val-elapsed">34h 22m</strong> / 48h • Drop rate: <span id="val-droprate">0.55</span>% /hr
+              </p>
+              <div class="progress-track purple-track">
+                <div class="progress-fill purple-fill animated-bar" id="completion-bar" style="width: 71%;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             SECTION 2: DRYING SESSIONS
+             ========================================== -->
+        <section id="section-drying-sessions" class="dash-section animate-card">
+          <div class="glass-panel session-monitor-card">
+            <div class="section-header-row">
+              <div class="section-title-group">
+                <div class="section-icon-badge green"><i data-lucide="timer"></i></div>
+                <div>
+                  <h3 data-i18n="sec_sessions_title">Drying Sessions — Active Progress &amp; Moisture Trajectory</h3>
+                  <p data-i18n="sec_sessions_sub">Real-time monitoring of active session status, drying duration, at initial-to-final moisture reduction progress.</p>
+                </div>
+              </div>
+              <div class="session-controls-right">
+                <span class="session-status-badge active" id="session-state-badge">
+                  <span class="pulse-dot"></span> ACTIVE SESSION: <strong id="active-batch-code">BATCH-2026-001</strong>
+                </span>
+                <button type="button" class="btn-outline-action" id="btn-pause-resume-session">
+                  <i data-lucide="pause"></i> <span>Pause Session</span>
+                </button>
+              </div>
+            </div>
+
+            <div class="session-stats-grid">
+              <div class="session-stat-item">
+                <span class="stat-lbl">ACTIVE SESSION STATUS</span>
+                <strong class="stat-big text-green" id="session-stage-text">Stage 2: Falling-Rate Drying</strong>
+                <small>Closed-Loop Solar-Hybrid Assisted</small>
+              </div>
+              <div class="session-stat-item">
+                <span class="stat-lbl">DRYING DURATION (ELAPSED / TARGET)</span>
+                <strong class="stat-big text-purple"><span id="sess-elapsed-hrs">34h 22m</span> / 48h 00m</strong>
+                <small>Remaining Time: <strong id="sess-rem-hrs">13h 38m</strong></small>
+              </div>
+              <div class="session-stat-item">
+                <span class="stat-lbl">INITIAL TO CURRENT MOISTURE (Mi → Mc)</span>
+                <strong class="stat-big text-blue"><span id="sess-mi">50.0%</span> → <span id="sess-mc">13.0%</span></strong>
+                <small>Target Final Moisture (Mf): <strong>≤ 6.0% WB</strong></small>
+              </div>
+              <div class="session-stat-item">
+                <span class="stat-lbl">MOISTURE REDUCTION PROGRESS</span>
+                <strong class="stat-big text-orange" id="sess-reduction-pct">84.1% Complete</strong>
+                <small>Drying Rate: <strong id="sess-drying-rate">0.55% MC / hr</strong></small>
+              </div>
+            </div>
+
+            <div class="session-trajectory-bar-wrap">
+              <div class="trajectory-labels">
+                <span>Initial (Mi: 50.0% WB)</span>
+                <span id="trajectory-mid-label">Current Moisture: 13.0% WB (84.1% toward Safe Copra Threshold)</span>
+                <span>Target Safe Storage (Mf: ≤6.0% WB)</span>
+              </div>
+              <div class="progress-track session-large-track">
+                <div class="progress-fill green-fill animated-bar" id="session-main-progress-bar" style="width: 84.1%;"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             SECTION 3: PREVENTIVE ALERTS (Important SMS & Red LCD Alerts)
+             ========================================== -->
+        <section id="alert-module-card" class="dash-section animate-card">
+          <div class="glass-panel alert-protocol-card">
+            <div class="alert-card-top">
+              <div class="alert-title-group">
+                <div class="shield-icon-box" id="alert-shield-box">
+                  <i data-lucide="shield-check"></i>
+                </div>
+                <div>
+                  <h3 data-i18n="alert_module_title">Preventive Alerts — Drying Rate, High Temp &amp; Contamination Protocol</h3>
+                  <p id="alert-protocol-desc" data-i18n="alert_module_desc">
+                    Optimal / On Track: Ang SMS at Red LCD Alerts ay ipinapadala lamang para sa mahahalagang babala gaya ng High Temperature, Mold Detection, Sensor Calibration Needed, at Account Updates.
+                  </p>
+                </div>
+              </div>
+
+              <div class="alert-action-buttons">
+                <button type="button" class="btn-simulate-alert" id="btn-simulate-high-temp">
+                  Simulate High Temperature!
+                </button>
+                <button type="button" class="btn-simulate-alert" id="btn-simulate-mold" data-i18n="btn_sim_mold">
+                  Simulate High Mold Alert
+                </button>
+                <button type="button" class="btn-warning-alert" id="btn-simulate-rate-warn">
+                  Simulate 48H Drying Warning
+                </button>
+                <button type="button" class="btn-reset-alert" id="btn-reset-mold" data-i18n="btn_reset_alert">
+                  Reset Alert
+                </button>
+              </div>
+            </div>
+
+            <div class="alert-status-row">
+              <div class="risk-indicator-box" id="risk-box">
+                <span class="risk-box-label" data-i18n="lbl_mold_risk">MOLD &amp; SYSTEM PERFORMANCE RISK</span>
+                <div class="risk-level-text" id="risk-level-display">
+                  <span class="status-dot green" id="risk-dot"></span>
+                  <strong id="risk-text">LOW RISK (OPTIMAL)</strong>
+                </div>
+              </div>
+
+              <div class="protocol-pills">
+                <span class="proto-pill active-green" id="pill-optimal" data-i18n="pill_optimal">Optimal / On track</span>
+                <span class="proto-pill" id="pill-48h-warning" data-i18n="pill_48h">48H Drying Rate Warning</span>
+                <span class="proto-pill" id="pill-mold-isolation" data-i18n="pill_isolation">Mold Detected - Isolation Required</span>
+              </div>
+            </div>
+
+            <!-- Important SMS & LCD Alert Status Bar -->
+            <div class="sms-alert-bar">
+              <div class="sms-bar-left">
+                <span class="sms-badge-tag"><i data-lucide="smartphone"></i> CRITICAL SMS &amp; LCD ALERTS: ON</span>
+                <span class="sms-recipient-info">
+                  Recipient: <strong id="sms-active-number">09123456789</strong>
+                  <small id="sms-mode-note">(Only for important alert: High Temp, Mold Detected, Calibration Needed, Account Updated, at Sign-In)</small>
+                </span>
+              </div>
+              <div class="sms-bar-actions">
+                <button type="button" class="btn-sms-test" id="btn-send-chamber-sms">
+                  <i data-lucide="send"></i> Send Urgent Test Alert
+                </button>
+                <button type="button" class="btn-sms-config" id="btn-configure-sms">
+                  SMS Gateway / API Setup
+                </button>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             SECTION 4 & 5: MOLD CLASSIFICATION (ESP32-CAM) & CONTROL SYSTEM
+             ========================================== -->
+        <div class="two-col-grid">
+          
+          <!-- SECTION 4: MOLD CLASSIFICATION -->
+          <section id="section-mold-classification" class="glass-panel camera-card animate-card">
+            <div class="camera-card-header">
+              <div class="cam-title-left">
+                <i data-lucide="camera" class="cam-icon"></i>
+                <div>
+                  <h4 data-i18n="cam_title">Mold Classification — ESP32-CAM Computer Vision</h4>
+                  <small class="section-micro-sub">Surface Condition Monitoring: NONE, LOW, and HIGH Mold Status</small>
+                </div>
+                <span class="live-pill"><span class="live-dot"></span> LIVE</span>
+              </div>
+
+              <div class="cam-title-right">
+                <span class="strat-badge" id="cv-strat-badge">
+                  Surface Status: <strong id="cv-class-text">NONE (0%)</strong>
+                </span>
+                <button type="button" class="btn-cam-refresh" id="btn-refresh-cam" title="Capture New Frame">
+                  <i data-lucide="refresh-cw"></i> Refresh
+                </button>
+              </div>
+            </div>
+
+            <!-- Interactive Mold Classification Selector Pills -->
+            <div class="mold-class-selector-bar">
+              <span class="mold-selector-label">CV Surface State:</span>
+              <div class="mold-pill-group">
+                <button type="button" class="mold-state-btn active-none" data-mold-state="NONE">
+                  <span class="dot-sm green"></span> NONE (Clean Copra)
+                </button>
+                <button type="button" class="mold-state-btn" data-mold-state="LOW">
+                  <span class="dot-sm amber"></span> LOW (Early Spore Warning)
+                </button>
+                <button type="button" class="mold-state-btn" data-mold-state="HIGH">
+                  <span class="dot-sm red"></span> HIGH (Critical Mold)
+                </button>
+              </div>
+            </div>
+
+            <!-- Camera Viewport -->
+            <div class="camera-viewport" id="camera-viewport">
+              <div class="cam-laser-line"></div>
+              <div class="cam-corner top-left"></div>
+              <div class="cam-corner top-right"></div>
+              <div class="cam-corner bottom-left"></div>
+              <div class="cam-corner bottom-right"></div>
+
+              <div class="cam-timestamp" id="cam-timestamp">BATCH-2026-001 • 1:52:46 PM</div>
+
+              <div class="cam-center-overlay" id="cam-overlay-msg">
+                <i data-lucide="scan-eye" class="cam-scan-icon pulse-anim"></i>
+                <span data-i18n="cam_active_msg">Single-Tray Chamber Inspection Active</span>
+                <small id="cam-surface-note">Visible Mold Classification: NONE (Healthy Kernel Surface)</small>
+              </div>
+
+              <div class="cam-bottom-controls">
+                <span class="mdbp-badge" id="mdbp-badge">MDBP - ACTIVE</span>
+                <button type="button" class="btn-cam-flash" id="btn-cam-flash">
+                  <i data-lucide="zap"></i> CAM FLASH
+                </button>
+              </div>
+            </div>
+
+            <div class="camera-card-footer">
+              <div class="cam-specs">
+                <span>Res: 1280x720</span>
+                <span>FPS: 10</span>
+                <span>Classes: None / Low / High</span>
+              </div>
+              <div class="model-accuracy-pill">
+                CV Model Accuracy: 94.2% (Verified)
+              </div>
+            </div>
+          </section>
+
+          <!-- SECTION 5: CONTROL SYSTEM -->
+          <section id="section-control-system" class="right-actuator-stack animate-card">
+            
+            <div class="glass-panel heater-card">
+              <div class="heater-header">
+                <div class="heater-title-group">
+                  <i data-lucide="flame" class="flame-icon flame-active" id="heater-flame-icon"></i>
+                  <div>
+                    <h4 data-i18n="heater_title">Control System — 600W PTC Heater • SSR</h4>
+                    <small class="section-micro-sub">Manual or Automated Thermal Management</small>
+                  </div>
+                </div>
+                <button type="button" class="status-outline-btn engaged" id="btn-ssr-engaged" title="Click to toggle Solid-State Relay (SSR)">
+                  ENGAGED
+                </button>
+              </div>
+
+              <div class="heater-metrics-row">
+                <div class="heater-stat-box">
+                  <span class="stat-label" data-i18n="lbl_wattage">WATTAGE</span>
+                  <strong class="stat-val" id="heater-wattage">600 W</strong>
+                </div>
+                <div class="heater-stat-box">
+                  <span class="stat-label">KSD301 CUTOFF</span>
+                  <strong class="stat-val" id="heater-cutoff-temp">60°C (ARMED)</strong>
+                </div>
+              </div>
+
+              <div class="relay-status-bar" id="ssr-status-bar">
+                <span id="ssr-state-text">SSR State: ON (Closed-Loop Active)</span>
+                <span id="thermal-safety-text">KSD301 Safety: Armed</span>
+              </div>
+            </div>
+
+            <!-- Actuator Controls -->
+            <div class="glass-panel actuators-card">
+              <div class="actuators-header">
+                <div>
+                  <h4 data-i18n="actuator_title">ACTUATOR &amp; AIRFLOW CONTROLS</h4>
+                  <small class="section-micro-sub">Centrifugal Blower, Exhaust Fans &amp; Chamber Illumination</small>
+                </div>
+                <button type="button" class="mode-rule-badge" id="btn-toggle-control-mode" title="Click to toggle Auto/Manual Mode">
+                  Control Mode: <strong id="control-mode-text">AUTO ENGAGED</strong>
+                </button>
+              </div>
+
+              <div class="actuator-list">
+                <!-- 12V Centrifugal Blower -->
+                <div class="actuator-item">
+                  <div class="actuator-info">
+                    <div class="actuator-icon-box orange-box spin-active" id="icon-box-blower">
+                      <i data-lucide="wind"></i>
+                    </div>
+                    <div>
+                      <h5>12V Centrifugal Blower</h5>
+                      <p>Forced-Air Circulation • 12V DC (PTC Heater Airflow)</p>
+                    </div>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" class="actuator-toggle" id="toggle-blower" data-equipment="12V Centrifugal Blower" data-icon-box="icon-box-blower" checked />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <!-- Exhaust Fan A -->
+                <div class="actuator-item">
+                  <div class="actuator-info">
+                    <div class="actuator-icon-box orange-box spin-active" id="icon-box-fan-a">
+                      <i data-lucide="fan"></i>
+                    </div>
+                    <div>
+                      <h5>Exhaust Fan A</h5>
+                      <p>1400 RPM • 12V DC Moisture Venting</p>
+                    </div>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" class="actuator-toggle" id="toggle-fan-a" data-equipment="Exhaust Fan A" data-icon-box="icon-box-fan-a" checked />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <!-- Exhaust Fan B -->
+                <div class="actuator-item">
+                  <div class="actuator-info">
+                    <div class="actuator-icon-box orange-box spin-active" id="icon-box-fan-b">
+                      <i data-lucide="fan"></i>
+                    </div>
+                    <div>
+                      <h5>Exhaust Fan B</h5>
+                      <p>1380 RPM • 12V DC Secondary Venting</p>
+                    </div>
+                  </div>
+                  <label class="switch">
+                    <input type="checkbox" class="actuator-toggle" id="toggle-fan-b" data-equipment="Exhaust Fan B" data-icon-box="icon-box-fan-b" checked />
+                    <span class="slider"></span>
+                  </label>
+                </div>
+
+                <!-- LED Strip (Chamber) -->
+                <div class="actuator-item led-item">
+                  <div class="actuator-row-top">
+                    <div class="actuator-info">
+                      <div class="actuator-icon-box sun-box">
+                        <i data-lucide="sun"></i>
+                      </div>
+                      <div>
+                        <h5>LED Strip (Chamber)</h5>
+                        <p>12V DC • Controlled CV Illumination</p>
+                      </div>
+                    </div>
+                    <label class="switch">
+                      <input type="checkbox" class="actuator-toggle" id="toggle-led" data-equipment="LED Strip (Chamber)" checked />
+                      <span class="slider"></span>
+                    </label>
+                  </div>
+
+                  <div class="led-brightness-row">
+                    <span>Brightness: <strong id="led-brightness-val">80%</strong></span>
+                    <input type="range" id="led-brightness-slider" min="10" max="100" value="80" />
+                  </div>
+                </div>
+              </div>
+
+              <p class="actuator-footer-hint" id="mode-hint-text" data-i18n="actuator_hint">
+                Switch to MANUAL mode or toggle any switch to override automated fans
+              </p>
+            </div>
+          </section>
+        </div>
+
+        <!-- ==========================================
+             SECTION 6: SENSOR CALIBRATION (ADMIN / DEVELOPER ONLY)
+             ========================================== -->
+        <section id="section-calibration" class="dash-section animate-card">
+          <div class="glass-panel calibration-master-card">
+            
+            <!-- Top Header + Calibration Status Indicator + Admin/Developer Lock -->
+            <div class="calibration-header-top">
+              <div class="section-title-group">
+                <div class="section-icon-badge blue"><i data-lucide="gauge"></i></div>
+                <div>
+                  <h3 data-i18n="cal_title">Sensor Calibration &amp; ESP32 Accuracy Verification</h3>
+                  <p data-i18n="cal_sub">
+                    Monitoring ng SHT31 Temperature, SHT31 Relative Humidity, at Experimental Moisture Probe. <strong>(Admin / Developer Only para sa Calibration Controls)</strong>
+                  </p>
+                </div>
+              </div>
+
+              <div class="calibration-status-wrapper">
+                <span class="cal-status-label">CALIBRATION STATUS &amp; ACCESS</span>
+                <div class="cal-badge-row">
+                  <button type="button" class="btn-admin-cal-access locked" id="btn-admin-cal-toggle">
+                    <i data-lucide="lock" id="admin-cal-icon"></i>
+                    <span id="admin-cal-text">Admin / Developer Access (Locked)</span>
+                  </button>
+                  <div class="cal-status-badge verified" id="cal-global-badge">
+                    <i data-lucide="check-circle-2" id="cal-badge-icon"></i>
+                    <strong id="cal-badge-text">Calibrated &amp; Verified</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Admin / Developer Notice Banner -->
+            <div class="admin-cal-lock-banner" id="admin-cal-lock-banner">
+              <div class="lock-banner-left">
+                <i data-lucide="shield-alert"></i>
+                <span id="admin-lock-msg">
+                  <strong>Restricted Access:</strong>Only the Admin or Developer is authorized to calibrate the chamber sensors. Please Click <em>Admin / Developer Access</em> (Passcode: <code>*******</code>) to open.
+                </span>
+              </div>
+            </div>
+
+            <!-- Calibration Control / Trigger Buttons Bar (Disabled kapag hindi Admin/Dev) -->
+            <div class="calibration-controls-bar" id="cal-controls-container">
+              <div class="cal-control-buttons">
+                <button type="button" class="btn-cal-primary cal-admin-only" id="btn-run-calibration" disabled>
+                  <i data-lucide="play-circle"></i> Run Calibration Check
+                </button>
+                <button type="button" class="btn-cal-secondary cal-admin-only" id="btn-zero-probe" disabled>
+                  <i data-lucide="rotate-ccw"></i> Zero / Reset Moisture Probe
+                </button>
+                <button type="button" class="btn-cal-warning cal-admin-only" id="btn-sim-drift" disabled>
+                  <i data-lucide="alert-octagon"></i> Simulate Sensor Drift (Needs Calibration Alert)
+                </button>
+              </div>
+              <div class="cal-routine-progress" id="cal-progress-box" style="display: none;">
+                <span id="cal-progress-text">Executing routine ESP32 sensor calibration check...</span>
+                <div class="progress-track green-track">
+                  <div class="progress-fill green-fill" id="cal-progress-bar" style="width: 0%;"></div>
+                </div>
+              </div>
+            </div>
+
+            <!-- Mean Absolute Error (MAE) Metrics Cards -->
+            <div class="mae-metrics-grid">
+              <div class="mae-card hover-lift">
+                <div class="mae-card-top">
+                  <span class="mae-label">TEMPERATURE MAE (SHT31 vs Ref Thermometer)</span>
+                  <span class="mae-pill green" id="mae-temp-pill">Within ±0.5°C</span>
+                </div>
+                <div class="mae-value text-orange"><span id="mae-temp-val">0.20</span> °C</div>
+                <p class="mae-formula">MAE = (1/n) Σ |Live − Ref| • Digital Psychrometer Ref</p>
+              </div>
+
+              <div class="mae-card hover-lift">
+                <div class="mae-card-top">
+                  <span class="mae-label">HUMIDITY MAE (SHT31 vs Ref Hygrometer)</span>
+                  <span class="mae-pill green" id="mae-rh-pill">Within ±2.0%</span>
+                </div>
+                <div class="mae-value text-blue"><span id="mae-rh-val">0.40</span> % RH</div>
+                <p class="mae-formula">MAE = (1/n) Σ |Live − Ref| • Calibrated Hygrometer Ref</p>
+              </div>
+
+              <div class="mae-card hover-lift">
+                <div class="mae-card-top">
+                  <span class="mae-label">MOISTURE PROBE MAE (vs Oven-Drying Method)</span>
+                  <span class="mae-pill green" id="mae-mc-pill">Within ±1.0%</span>
+                </div>
+                <div class="mae-value text-green"><span id="mae-mc-val">0.30</span> % MC</div>
+                <p class="mae-formula">MAE = (1/n) Σ |Live − Ref| • Gravimetric Oven-Dry Standard</p>
+              </div>
+            </div>
+
+            <!-- Sensor Status & Live Readings Table -->
+            <div class="cal-sub-block">
+              <div class="sub-block-header">
+                <h4><i data-lucide="table-2"></i> Sensor Status &amp; Live Readings vs. Standard Reference</h4>
+                <small>The Reference Value can only be edited when Admin / Developer Mode is unlocked.</small>
+              </div>
+
+              <div class="responsive-table-wrap">
+                <table class="copra-table" id="sensor-calibration-table">
+                  <thead>
+                    <tr>
+                      <th>Primary ESP32 Sensor</th>
+                      <th>Reference Standard Method</th>
+                      <th>Live Sensor Value</th>
+                      <th>Reference Value (Admin/Dev)</th>
+                      <th>Absolute Error (|Live − Ref|)</th>
+                      <th>ESP32 Code Offset</th>
+                      <th>Threshold</th>
+                      <th>Sensor Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <!-- SHT31 Temperature Sensor -->
+                    <tr>
+                      <td>
+                        <strong>SHT31 Temperature Sensor</strong>
+                        <small class="d-block text-muted">I2C Addr: 0x44 • Chamber Thermal</small>
+                      </td>
+                      <td>Calibrated Reference Thermometer</td>
+                      <td><strong class="text-orange"><span id="cal-live-temp">56.1</span> °C</strong></td>
+                      <td>
+                        <input type="number" step="0.1" class="ref-input cal-admin-only" id="ref-input-temp" value="55.9" aria-label="Reference Temperature" disabled /> °C
+                      </td>
+                      <td><strong id="cal-err-temp">0.20 °C</strong></td>
+                      <td><code>temp_offset = -0.20</code></td>
+                      <td>≤ ±0.5 °C</td>
+                      <td><span class="table-status-badge verified" id="row-status-temp">Calibrated &amp; Verified</span></td>
+                    </tr>
+
+                    <!-- SHT31 Relative Humidity Sensor -->
+                    <tr>
+                      <td>
+                        <strong>SHT31 Relative Humidity Sensor</strong>
+                        <small class="d-block text-muted">I2C Addr: 0x44 • Chamber Microclimate</small>
+                      </td>
+                      <td>Reference Digital Hygrometer</td>
+                      <td><strong class="text-blue"><span id="cal-live-rh">37.5</span> %</strong></td>
+                      <td>
+                        <input type="number" step="0.1" class="ref-input cal-admin-only" id="ref-input-rh" value="37.1" aria-label="Reference Humidity" disabled /> %
+                      </td>
+                      <td><strong id="cal-err-rh">0.40 %</strong></td>
+                      <td><code>rh_offset = -0.40</code></td>
+                      <td>≤ ±2.0 %</td>
+                      <td><span class="table-status-badge verified" id="row-status-rh">Calibrated &amp; Verified</span></td>
+                    </tr>
+
+                    <!-- Experimental Moisture Probe -->
+                    <tr>
+                      <td>
+                        <strong>Experimental Moisture Probe</strong>
+                        <small class="d-block text-muted">ADC GPIO34 • Copra Kernel Resistance</small>
+                      </td>
+                      <td>Oven-Drying Gravimetric Method</td>
+                      <td><strong class="text-green"><span id="cal-live-mc">13.0</span> %</strong></td>
+                      <td>
+                        <input type="number" step="0.1" class="ref-input cal-admin-only" id="ref-input-mc" value="12.7" aria-label="Reference Moisture" disabled /> %
+                      </td>
+                      <td><strong id="cal-err-mc">0.30 %</strong></td>
+                      <td><code id="mc-offset-code">mc_offset = -0.30</code></td>
+                      <td>≤ ±1.0 %</td>
+                      <td><span class="table-status-badge verified" id="row-status-mc">Calibrated &amp; Verified</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Calibration Logs & History -->
+            <div class="cal-sub-block">
+              <div class="sub-block-header">
+                <h4><i data-lucide="history"></i> Calibration Logs &amp; History</h4>
+                <small>Records of previous calibration session of Admin / Developer and the offset values on ESP32 code.</small>
+              </div>
+
+              <div class="responsive-table-wrap">
+                <table class="copra-table" id="calibration-history-table">
+                  <thead>
+                    <tr>
+                      <th>Petsa (Date)</th>
+                      <th>Oras (Time)</th>
+                      <th>Nag-Calibrate (Admin/Developer)</th>
+                      <th>ESP32 Adjustment Factor / Offset Values</th>
+                      <th>Computed MAE (T / RH / MC)</th>
+                      <th>Result Status</th>
+                    </tr>
+                  </thead>
+                  <tbody id="calibration-logs-tbody"></tbody>
+                </table>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==========================================
+             SECTION 7: DATA LOGS & TECHNICAL DIAGNOSTICS
+             ========================================== -->
+        <section id="section-diagnostics" class="dash-section animate-card">
+          <div class="glass-panel diagnostics-banner">
+            <h4 data-i18n="diag_title">Data Logs &amp; Technical Diagnostics (ESP32 Serial &amp; Supabase Telemetry)</h4>
+            <span class="telemetry-rate">Data Logging Success Rate: <strong id="logging-rate-val">100.0%</strong></span>
+          </div>
+
+          <div class="diagnostics-grid">
+            <!-- Left: Historical Trends: 24h -->
+            <div class="glass-panel chart-card">
+              <div class="chart-card-header">
+                <h4 data-i18n="trends_title">Historical Trends: 24h</h4>
+                <div class="chart-legend">
+                  <span class="legend-item"><span class="legend-line blue-line"></span> Temperature °C</span>
+                  <span class="legend-item"><span class="legend-line teal-line"></span> Humidity %</span>
+                  <span class="legend-item"><span class="legend-line red-line"></span> Moisture %</span>
+                </div>
+              </div>
+
+              <div class="svg-chart-wrapper">
+                <svg viewBox="0 0 650 320" class="trends-svg" id="trends-svg" aria-label="24 Hour Historical Trends Chart">
+                  <g class="grid-lines" stroke="#e2e8f0" stroke-dasharray="3,3" stroke-width="1">
+                    <line x1="55" y1="30" x2="610" y2="30" />
+                    <line x1="55" y1="80" x2="610" y2="80" />
+                    <line x1="55" y1="130" x2="610" y2="130" />
+                    <line x1="55" y1="180" x2="610" y2="180" />
+                    <line x1="55" y1="230" x2="610" y2="230" />
+                    <line x1="55" y1="280" x2="610" y2="280" />
+                  </g>
+
+                  <line x1="55" y1="265" x2="610" y2="265" stroke="#15803d" stroke-dasharray="5,4" stroke-width="1.5" />
+                  <text x="415" y="260" fill="#15803d" font-size="10" font-weight="700">6% Safe Copra Threshold</text>
+
+                  <g class="y-labels" fill="#64748b" font-size="11" text-anchor="end">
+                    <text x="45" y="34">100</text>
+                    <text x="45" y="84">80</text>
+                    <text x="45" y="134">60</text>
+                    <text x="45" y="184">40</text>
+                    <text x="45" y="234">20</text>
+                    <text x="45" y="284">0</text>
+                  </g>
+
+                  <g class="x-labels" fill="#64748b" font-size="11" text-anchor="middle">
+                    <text x="70" y="302">00:00</text>
+                    <text x="158" y="302">04:00</text>
+                    <text x="246" y="302">08:00</text>
+                    <text x="334" y="302">12:00</text>
+                    <text x="422" y="302">16:00</text>
+                    <text x="510" y="302">20:00</text>
+                    <text x="598" y="302">24:00</text>
+                  </g>
+
+                  <!-- Moisture % Line -->
+                  <polyline fill="none" stroke="#fb7185" stroke-width="2.5"
+                    points="70,155 158,175 246,192 334,212 422,228 510,240 598,247" />
+                  <g fill="#fff" stroke="#fb7185" stroke-width="2">
+                    <circle cx="70" cy="155" r="4" /><circle cx="158" cy="175" r="4" />
+                    <circle cx="246" cy="192" r="4" /><circle cx="334" cy="212" r="4" />
+                    <circle cx="422" cy="228" r="4" /><circle cx="510" cy="240" r="4" />
+                    <circle cx="598" cy="247" r="4" />
+                  </g>
+
+                  <!-- Humidity % Line -->
+                  <polyline fill="none" stroke="#34d399" stroke-width="2.5"
+                    points="70,125 158,140 246,165 334,195 422,185 510,190 598,186" />
+                  <g fill="#fff" stroke="#34d399" stroke-width="2">
+                    <circle cx="70" cy="125" r="4" /><circle cx="158" cy="140" r="4" />
+                    <circle cx="246" cy="165" r="4" /><circle cx="334" cy="195" r="4" />
+                    <circle cx="422" cy="185" r="4" /><circle cx="510" cy="190" r="4" />
+                    <circle cx="598" cy="186" r="4" />
+                  </g>
+
+                  <!-- Temperature °C Line -->
+                  <polyline fill="none" stroke="#6366f1" stroke-width="2.5"
+                    points="70,150 158,145 246,138 334,128 422,135 510,142 598,140" />
+                  <g fill="#fff" stroke="#6366f1" stroke-width="2">
+                    <circle cx="70" cy="150" r="4" /><circle cx="158" cy="145" r="4" />
+                    <circle cx="246" cy="138" r="4" /><circle cx="334" cy="128" r="4" />
+                    <circle cx="422" cy="135" r="4" /><circle cx="510" cy="142" r="4" />
+                    <circle cx="598" cy="140" r="4" />
+                  </g>
+                </svg>
+              </div>
+            </div>
+
+            <!-- Right: Log Batch Results -->
+            <div class="glass-panel batch-log-card">
+              <div class="batch-header">
+                <i data-lucide="check-circle-2" class="text-green"></i>
+                <h4 data-i18n="log_batch_title">Log Batch Results</h4>
+              </div>
+
+              <form id="batch-log-form" class="batch-form">
+                <div class="batch-field">
+                  <label for="input-mi">Initial Moisture Content (Mi) - %</label>
+                  <input type="number" step="0.1" id="input-mi" value="50.0" />
+                </div>
+
+                <div class="batch-field">
+                  <label for="input-mf">Final Moisture Content (Mf) - %</label>
+                  <input type="number" step="0.1" id="input-mf" value="6.0" />
+                </div>
+
+                <div class="batch-two-col">
+                  <div class="batch-field">
+                    <label for="output-reduction">Percentage Moisture Reduction</label>
+                    <input type="text" id="output-reduction" value="88.0" readonly class="readonly-pill" />
+                  </div>
+                  <div class="batch-field">
+                    <label for="output-rate">Average Drying Rate (% / hr)</label>
+                    <input type="text" id="output-rate" value="0.92" readonly class="readonly-pill" />
+                  </div>
+                </div>
+
+                <div class="batch-field">
+                  <label for="select-cv-mold">Final CV Mold Contamination Level</label>
+                  <div class="select-wrapper">
+                    <select id="select-cv-mold">
+                      <option value="NONE" selected>NONE (Optimal Surface)</option>
+                      <option value="LOW">LOW (Warning)</option>
+                      <option value="HIGH">HIGH (Isolation Required)</option>
+                    </select>
+                    <i data-lucide="chevron-down" class="select-arrow"></i>
+                  </div>
+                </div>
+
+                <div class="batch-field">
+                  <div class="label-with-right">
+                    <label for="select-aflatoxin">Aflatoxin Rapid Test (LFIA Kit)</label>
+                    <span class="threshold-tag">Threshold: 20 ppb</span>
+                  </div>
+                  <div class="select-wrapper">
+                    <select id="select-aflatoxin">
+                      <option value="Negative (<20 ppb)" selected>Negative (&lt;20 ppb)</option>
+                      <option value="Positive (≥20 ppb)">Positive (≥20 ppb)</option>
+                      <option value="Pending Validation">Pending Validation</option>
+                    </select>
+                    <i data-lucide="chevron-down" class="select-arrow"></i>
+                  </div>
+                </div>
+
+                <div class="batch-safety-status" id="batch-safety-status">
+                  <i data-lucide="check-circle-2"></i>
+                  <span id="batch-safety-text">Target Moisture (≤6%) &amp; Screening Threshold Met</span>
+                </div>
+
+                <button type="button" class="btn-export-csv" id="btn-export-csv">
+                  <i data-lucide="download"></i> Export Batch Data (.CSV)
+                </button>
+              </form>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================
+             SECTION 8: NOTIFICATION & IMPORTANT SMS DISPATCH CENTER
+             ========================================== -->
+        <section id="section-notifications-center" class="dash-section animate-card">
+          <div class="glass-panel notif-center-card">
+            <div class="section-header-row">
+              <div class="section-title-group">
+                <div class="section-icon-badge orange"><i data-lucide="bell-ring"></i></div>
+                <div>
+                  <h3 data-i18n="sec_notif_center_title">Notification &amp; Important Chamber SMS Center</h3>
+                  <p data-i18n="sec_notif_center_sub">
+                    SMS alerts are filtered only for important alerts: High Temperature, Mold Detection, Sensor Calibration Needed, Account Updated, and Welcome Sign-In.
+                  </p>
+                </div>
+              </div>
+
+              <div class="auto-dispatch-toggle-box">
+                <label class="switch">
+                  <input type="checkbox" id="toggle-auto-sms-master" checked />
+                  <span class="slider"></span>
+                </label>
+                <span>Enable Critical SMS Alerts</span>
+              </div>
+            </div>
+
+            <div class="notif-center-grid">
+              <div class="notif-feed-box">
+                <div class="sub-block-header">
+                  <h4><i data-lucide="bell"></i> Live Website Notifications</h4>
+                  <span class="badge-pill" id="section-notif-count">2 Alerts</span>
+                </div>
+                <div class="notif-section-list" id="section-notif-list"></div>
+              </div>
+
+              <div class="notif-feed-box">
+                <div class="sub-block-header">
+                  <h4><i data-lucide="send"></i> Important Sent SMS Log</h4>
+                  <span class="badge-pill green">Critical Alerts Only</span>
+                </div>
+                <div class="notif-section-list" id="section-sms-outbox-list"></div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 1: FORGOT PASSWORD
+       ========================================== -->
+  <div id="forgot-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h4><i data-lucide="key-round"></i> Forgot Password — Request Reset</h4>
+        <button type="button" class="modal-close" id="close-forgot-modal">&times;</button>
+      </div>
+      <p class="modal-sub">
+        Choose where you want to receive your 6-digit Reset Code (via SMS or Email).
+
+      <div class="reset-method-tabs">
+        <button type="button" class="reset-tab active" id="tab-reset-sms" data-method="sms">
+          <i data-lucide="smartphone"></i> Send via SMS
+        </button>
+        <button type="button" class="reset-tab" id="tab-reset-email" data-method="email">
+          <i data-lucide="mail"></i> Send via Email
+        </button>
+      </div>
+
+      <div id="forgot-alert-box" class="auth-alert-box" style="display: none;"></div>
+
+      <div id="reset-step-1">
+        <div class="form-group">
+          <label id="reset-target-label" for="reset-identifier">REGISTERED MOBILE NUMBER OR EMAIL</label>
+          <div class="input-with-icon" id="reset-id-wrap">
+            <i data-lucide="phone" class="input-icon"></i>
+            <input type="text" id="reset-identifier" placeholder="09123456789 or example@gmail.com" />
+          </div>
+          <small class="field-error-msg" id="reset-id-error"></small>
+        </div>
+        <button type="button" class="btn-auth-submit" id="btn-send-reset-code">
+          Send Reset OTP Code Now
+        </button>
+      </div>
+
+      <div id="reset-step-2" style="display: none; margin-top: 14px;">
+        <div class="form-group">
+          <label for="reset-otp-input">ENTER 6-DIGIT OTP CODE RECEIVED</label>
+          <div class="input-with-icon">
+            <i data-lucide="shield-check" class="input-icon"></i>
+            <input type="text" id="reset-otp-input" maxlength="6" placeholder="6-digit OTP code" />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="reset-new-password">NEW PASSWORD (AT LEAST 8 CHARACTERS)</label>
+          <div class="input-with-icon" id="reset-pass-wrap">
+            <i data-lucide="lock" class="input-icon"></i>
+            <input type="password" id="reset-new-password" placeholder="Enter new password" />
+          </div>
+          <small class="field-error-msg" id="reset-pass-error"></small>
+        </div>
+
+        <button type="button" class="btn-auth-submit" id="btn-confirm-new-password">
+          Save New Password &amp; Return to Sign In
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 2: USER PROFILE (UPDATE / DELETE ACCOUNT)
+       ========================================== -->
+  <div id="profile-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h4><i data-lucide="user-cog"></i> User Account Profile</h4>
+        <button type="button" class="modal-close" id="close-profile-modal">&times;</button>
+      </div>
+      <p class="modal-sub">
+        Update your personal details, mobile number/email for important SMS alerts, or delete your account.
+
+      <div id="profile-alert-box" class="auth-alert-box" style="display: none;"></div>
+
+      <form id="profile-update-form" class="auth-form" novalidate>
+        <div class="form-group">
+          <label for="profile-fullname">FULL NAME</label>
+          <div class="input-with-icon">
+            <i data-lucide="user" class="input-icon"></i>
+            <input type="text" id="profile-fullname" required />
+          </div>
+        </div>
+
+        <div class="form-group">
+          <label for="profile-identifier">MOBILE NUMBER OR EMAIL</label>
+          <div class="input-with-icon" id="profile-id-wrap">
+            <i data-lucide="phone" class="input-icon"></i>
+            <input type="text" id="profile-identifier" required />
+          </div>
+          <small class="field-error-msg" id="profile-id-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="profile-password">PASSWORD (AT LEAST 8 CHARACTERS)</label>
+          <div class="input-with-icon" id="profile-pass-wrap">
+            <i data-lucide="lock" class="input-icon"></i>
+            <input type="password" id="profile-password" required />
+            <button type="button" class="toggle-password" data-target="profile-password">
+              <i data-lucide="eye-off"></i>
+            </button>
+          </div>
+          <small class="field-error-msg" id="profile-pass-error"></small>
+        </div>
+
+        <div class="profile-action-row">
+          <button type="submit" class="btn-auth-submit">
+            Update Account
+          </button>
+          <button type="button" class="btn-delete-account" id="btn-delete-account">
+            <i data-lucide="trash-2"></i> Delete Account
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 3: DIRECT SMS GATEWAY & IMPORTANT ALERT SETTINGS
+       ========================================== -->
+  <div id="sms-modal" class="modal-backdrop">
+    <div class="modal-box sms-modal-box">
+      <div class="modal-header">
+        <h4><i data-lucide="smartphone"></i> Important SMS Notification Gateway</h4>
+        <button type="button" class="modal-close" id="close-sms-modal">&times;</button>
+      </div>
+      <p class="modal-sub">
+        SMS notifications are filtered only for important alerts (High Temperature, Mold Detection, Calibration Needed, Account Updated, and Sign-In Welcome).
+      </p>
+
+      <div class="sms-settings-grid">
+        <div class="form-group">
+          <label for="sms-recipient-input">RECIPIENT MOBILE NUMBER OR EMAIL</label>
+          <div class="input-with-icon" id="sms-input-wrap">
+            <i data-lucide="phone" class="input-icon"></i>
+            <input type="text" id="sms-recipient-input" placeholder="09123456789 or example@gmail.com" value="09123456789" />
+          </div>
+          <small class="field-error-msg" id="sms-input-error"></small>
+        </div>
+
+        <div class="batch-two-col" style="margin-bottom: 10px;">
+          <div class="form-group">
+            <label for="sms-gateway-url">SMS / EMAIL WEBHOOK ENDPOINT</label>
+            <input type="text" id="sms-gateway-url" placeholder="Optional API Endpoint (TextBee / Semaphore)" class="modal-text-input" />
+          </div>
+          <div class="form-group">
+            <label for="sms-api-key">API KEY (OPTIONAL)</label>
+            <input type="password" id="sms-api-key" placeholder="Paste SMS API Key" class="modal-text-input" />
+          </div>
+        </div>
+
+        <div class="sms-triggers-box">
+          <label class="sms-check-item">
+            <input type="checkbox" id="sms-trig-all-notifs" checked />
+            <span><strong>Important Chamber Alerts Only:</strong> Send a SMS when High Temperature, Mold Detected, Calibration Needed, or Account Update</span>
+          </label>
+          <label class="sms-check-item">
+            <input type="checkbox" id="sms-open-native-app" />
+            <span><strong>Direct Phone SMS App Dispatch:</strong> Open the default SMS App of you phone once it triggered of urgent alert</span>
+          </label>
+        </div>
+
+        <div class="sms-modal-actions">
+          <button type="button" class="btn-auth-submit" id="btn-save-sms-settings">
+            Save Settings
+          </button>
+        </div>
+      </div>
+
+      <div class="phone-sms-preview">
+        <div class="phone-sms-header">
+          <span><i data-lucide="signal"></i> PH-GSM • Important Sent SMS Log</span>
+          <span id="sms-inbox-count">Filtered Outbox</span>
+        </div>
+        <div class="phone-sms-messages" id="phone-sms-messages"></div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 4: LOCAL 16x2 I2C LCD MODULE MIRROR (MAY PULANG MESSAGE ALERT)
+       ========================================== -->
+  <div id="lcd-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h4><i data-lucide="monitor"></i> Local 16x2 I2C LCD Module</h4>
+        <button type="button" class="modal-close" id="close-lcd-modal">&times;</button>
+      </div>
+      <p class="modal-sub">
+        Exact Mirror of <strong>16x2 I2C LCD</strong> (16 characters x 2 rows) in chamber. Turns red <strong> (Red Alert)</strong> when there is urgent chamber warning.
+      </p>
+
+      <!-- PULANG MESSAGE ALERT BANNER PARA SA LCD -->
+      <div id="lcd-red-alert-box" class="lcd-red-alert-box" style="display: none;">
+        <i data-lucide=" octagon-alert"></i>
+        <div>
+          <strong>CHAMBER LCD CRITICAL ALERT:</strong>
+          <p id="lcd-red-alert-msg">High Temperature! Check Chamber Immediately.</p>
+        </div>
+      </div>
+
+      <div class="lcd-hardware-screen lcd-16x2" id="lcd-hardware-screen">
+        <div class="lcd-line" id="lcd-line-1">T:56.1C RH:37.5%</div>
+        <div class="lcd-line" id="lcd-line-2">MC:13.0% SSR:ON </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- ==========================================
+       MODAL 5: ADMIN / DEVELOPER PASSCODE MODAL PARA SA CALIBRATION
+       ========================================== -->
+  <div id="admin-cal-modal" class="modal-backdrop">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h4><i data-lucide="shield-check"></i> Admin / Developer Calibration Access</h4>
+        <button type="button" class="modal-close" id="close-admin-cal-modal">&times;</button>
+      </div>
+      <p class="modal-sub">
+        Only <strong>Admin</strong> or <strong>Developer</strong> is authorized to calibrate the chamber sensors. Enter the developer passcode to unlock.
+      </p>
+
+      <div id="admin-cal-alert-box" class="auth-alert-box" style="display: none;"></div>
+
+      <div class="form-group">
+        <label for="admin-passcode-input">ADMIN / DEVELOPER PASSCODE</label>
+        <div class="input-with-icon" id="admin-pass-wrap">
+          <i data-lucide="key-round" class="input-icon"></i>
+          <input type="password" id="admin-passcode-input" placeholder="Enter admin passcode" />
+        </div>
+        <small class="field-error-msg" id="admin-pass-error"></small>
+      </div>
+
+      <button type="button" class="btn-auth-submit" id="btn-verify-admin-cal">
+        Unlock Sensor Calibration Controls
+      </button>
+    </div>
+  </div>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container"></div>
+
+  <!-- Custom Script -->
+  <script src="script.js"></script>
+</body>
+</html>
