@@ -122,12 +122,21 @@
         </div>
 
         <div class="form-group">
-          <label for="signup-identifier" data-i18n="lbl_mobile_email">MOBILE NUMBER OR EMAIL</label>
-          <div class="input-with-icon" id="signup-id-wrap">
+          <label for="signup-mobile">MOBILE NUMBER </label>
+          <div class="input-with-icon" id="signup-mobile-wrap">
             <i data-lucide="phone" class="input-icon"></i>
-            <input type="text" id="signup-identifier" placeholder="09123456789 or example@gmail.com" required />
+            <input type="tel" id="signup-mobile" placeholder="09123456789" required />
           </div>
-          <small class="field-error-msg" id="signup-id-error"></small>
+          <small class="field-error-msg" id="signup-mobile-error"></small>
+        </div>
+
+        <div class="form-group">
+          <label for="signup-email">EMAIL ADDRESS</label>
+          <div class="input-with-icon" id="signup-email-wrap">
+            <i data-lucide="mail" class="input-icon"></i>
+            <input type="email" id="signup-email" placeholder="example@gmail.com" required />
+          </div>
+          <small class="field-error-msg" id="signup-email-error"></small>
         </div>
 
         <div class="form-group">

@@ -668,15 +668,19 @@ function initAuthViews() {
     signinView?.classList.add("active-view");
   });
 
-  // SIGN UP
+// SIGN UP (Hiwalay na Mobile at Email)
   document.getElementById("signup-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideFormAlert("signup-alert-box");
 
     const fullName = document.getElementById("signup-fullname")?.value.trim() || "";
-    const idEl = document.getElementById("signup-identifier");
+    const mobileEl = document.getElementById("signup-mobile");
+    const emailEl = document.getElementById("signup-email");
     const passEl = document.getElementById("signup-password");
     const confirmEl = document.getElementById("signup-confirm");
+
+    const mobile = mobileEl ? mobileEl.value.trim() : "";
+    const email = emailEl ? emailEl.value.trim() : "";
 
     let hasError = false;
 
@@ -689,32 +693,38 @@ function initAuthViews() {
       if (nameErrEl) nameErrEl.textContent = "";
     }
 
-    // 2. Check Identifier Format at kung may Account na
-    const idValid = validateIdentifierInput(
-      idEl,
-      document.getElementById("signup-id-wrap"),
-      document.getElementById("signup-id-error")
-    );
-    const identifier = idEl ? idEl.value.trim() : "";
-    const existingAccount = findAccountByIdentifier(identifier);
-
-    if (!idValid) {
-      document.getElementById("signup-id-wrap")?.classList.add("input-error");
-      const errEl = document.getElementById("signup-id-error");
-      if (errEl) errEl.textContent = "Invalid email or number";
-      hasError = true;
-    } else if (existingAccount) {
-      document.getElementById("signup-id-wrap")?.classList.add("input-error");
-      const errEl = document.getElementById("signup-id-error");
-      if (errEl) errEl.textContent = "Account already exists. Please Sign In.";
+    // 2. Validate Mobile Number (Pilipino format: 09XXXXXXXXX)
+    const phMobileRegex = /^(09\d{9}|\+639\d{9})$/;
+    const mobileErrEl = document.getElementById("signup-mobile-error");
+    if (!phMobileRegex.test(mobile)) {
+      document.getElementById("signup-mobile-wrap")?.classList.add("input-error");
+      if (mobileErrEl) mobileErrEl.textContent = "Invalid mobile number (e.g. 09123456789)";
       hasError = true;
     } else {
-      document.getElementById("signup-id-wrap")?.classList.remove("input-error");
-      const errEl = document.getElementById("signup-id-error");
-      if (errEl) errEl.textContent = "";
+      document.getElementById("signup-mobile-wrap")?.classList.remove("input-error");
+      if (mobileErrEl) mobileErrEl.textContent = "";
     }
 
-    // 3. Password Check (At least 8 characters)
+    // 3. Validate Email Address
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const emailErrEl = document.getElementById("signup-email-error");
+    if (!emailRegex.test(email)) {
+      document.getElementById("signup-email-wrap")?.classList.add("input-error");
+      if (emailErrEl) emailErrEl.textContent = "Invalid email address";
+      hasError = true;
+    } else {
+      document.getElementById("signup-email-wrap")?.classList.remove("input-error");
+      if (emailErrEl) emailErrEl.textContent = "";
+    }
+
+    // 4. Check kung may nag-e-exist nang account gamit ang mobile o email
+    const existingAccount = findAccountByIdentifier(mobile) || findAccountByIdentifier(email);
+    if (existingAccount) {
+      showFormAlert("signup-alert-box", "Account already exists with this mobile or email. Please Sign In.", false);
+      hasError = true;
+    }
+
+    // 5. Password Check (At least 8 characters)
     if (!passEl || passEl.value.length < PASSWORD_MIN_LENGTH) {
       document.getElementById("signup-pass-wrap")?.classList.add("input-error");
       const errEl = document.getElementById("signup-pass-error");
@@ -726,7 +736,7 @@ function initAuthViews() {
       if (errEl) errEl.textContent = "";
     }
 
-    // 4. Confirm Password Check
+    // 6. Confirm Password Check
     if (!confirmEl || !confirmEl.value || confirmEl.value !== passEl.value) {
       document.getElementById("signup-confirm-wrap")?.classList.add("input-error");
       const errEl = document.getElementById("signup-confirm-error");
@@ -742,9 +752,10 @@ function initAuthViews() {
 
     const newAcc = {
       fullName,
-      identifier,
+      identifier: mobile, // Pwede mong gawing mobile o email ang pangunahing identifier sa pag-sign in
+      mobileNumber: mobile,
+      email: email,
       password: passEl.value,
-      mobileNumber: identifier,
       loginCount: 0,
       role: fullName.toLowerCase().includes("admin") ? "Admin" : "User",
       createdAt: new Date().toISOString()
@@ -754,10 +765,12 @@ function initAuthViews() {
     accounts.push(newAcc);
     saveRegisteredAccounts(accounts);
 
+    // I-save sa Supabase na may hiwalay na kolum para sa mobile at email
     insertSupabaseRecord("registered_users", {
       full_name: fullName,
-      identifier: identifier,
-      mobile_number: newAcc.mobileNumber
+      identifier: mobile,
+      mobile_number: mobile,
+      email: email
     });
 
     document.getElementById("signup-form")?.reset();
@@ -765,7 +778,7 @@ function initAuthViews() {
     signinView?.classList.add("active-view");
 
     const signinIdEl = document.getElementById("signin-identifier");
-    if (signinIdEl) signinIdEl.value = identifier;
+    if (signinIdEl) signinIdEl.value = mobile;
 
     showFormAlert(
       "signin-alert-box",
