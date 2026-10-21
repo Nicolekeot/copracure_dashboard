@@ -15,8 +15,8 @@
    - Admin / Developer Lock for Sensor Calibration (Passcode: admin123)
    ========================================================================== */
 
-const SUPABASE_URL = "https://oaqqewkfmkhbauvauiaa.supabase.co";
-const SUPABASE_ANON_KEY = "sb_publishable_1SOgbmak8sO1SxRFMVFaHw_hyd-PkVD";
+const SUPABASE_URL = "https://wvpyqzzcfzwtmcfaeejz.supabase.co";
+const SUPABASE_ANON_KEY = "sb_publishable_ck7UlFR4ZoCBEmqgqx0KXA_7Kzzn4bg";
 
 let supabaseClient = null;
 if (window.supabase) {
