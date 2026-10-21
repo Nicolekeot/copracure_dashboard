@@ -354,30 +354,33 @@ function validateSignupPasswordInput(inputEl, wrapEl, errorEl) {
 /**
  * Sa Sign Up Confirm Password: "Password does not match"
  */
-function validateConfirmPasswordInput() {
-  const passEl = document.getElementById("signup-password");
-  const passValid = validSignupPasswordInput(
-    passEL,
-    document.getElementById("signup-pass-wrap"),
-    document.getElementById("signup-pass-error")
-  );
-  if (!passValid) {
-    hasError = true;
-  }
-  const confirmEl = document.getElementById("signup-confirm");
-  const wrapEl = document.getElementById("signup-confirm-wrap");
-  const errorEl = document.getElementById("signup-confirm-error");
 
-  if (!confirmEl || !passEl || !confirmEl.value || confirmEl.value !== passEl.value) {
-    if (wrapEl) wrapEl.classList.add("input-error");
-    if (errorEl) errorEl.textContent = "Password does not match";
-    return false;
-  }
+const signupPass = document.getElementById("signup-password");
 
-  if (wrapEl) wrapEl.classList.remove("input-error");
-  if (errorEl) errorEl.textContent = "";
-  return true;
+if (signupPass) {
+  signupPass.addEventListener("input", () => {
+    const wrap = document.getElementById("signup-pass-wrap");
+    const error = document.getElementById("signup-pass-error");
+    const length = signupPass.value.length;
+
+    // Para ito sa rule na eksaktong 8 characters.
+    if (length !== 8) {
+      wrap?.classList.add("input-error");
+
+      if (error) {
+        error.textContent =
+          length < 8
+            ? "Password must be at least 8 characters"
+            : "Password must not exceed 8 characters";
+      }
+    } else {
+      wrap?.classList.remove("input-error");
+
+      if (error) error.textContent = "";
+    }
+  });
 }
+
 
 function initInputValidators() {
   const idFields = [
@@ -732,16 +735,29 @@ function initAuthViews() {
       hasError = true;
     }
 
-    // 5. Password Check (At least 8 characters)
-    if (!passEl || passEl.value.length < PASSWORD_MIN_LENGTH) {
-      document.getElementById("signup-pass-wrap")?.classList.add("input-error");
-      const errEl = document.getElementById("signup-pass-error");
-      if (errEl) errEl.textContent = "Please enter at least 8 characters";
+    
+    // 5. Validate Password (Exactly 8 characters)
+    const password = passEl ? passEl.value : "";
+    const passWrap = document.getElementById("signup-pass-wrap");
+    const passError = document.getElementById("signup-pass-error");
+
+    if (password.length !== 8) {
+      passWrap?.classList.add("input-error");
+
+      if (passError) {
+        passError.textContent =
+          password.length < 8
+            ? "Password must be 8 characters Only"
+            : "Password must not exceed 8 characters";
+      }
+
       hasError = true;
     } else {
-      document.getElementById("signup-pass-wrap")?.classList.remove("input-error");
-      const errEl = document.getElementById("signup-pass-error");
-      if (errEl) errEl.textContent = "";
+      passWrap?.classList.remove("input-error");
+
+      if (passError) {
+        passError.textContent = "";
+      }
     }
 
     // 6. Confirm Password Check
