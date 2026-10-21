@@ -843,25 +843,22 @@ function initAuthViews() {
     }
     
     hasError = true;
-    
+
     // 2. Check Password
     if (existingAccount && !password) {
       signinPassWrap?.classList.add("input-error");
       if (signinPassErr) signinPassErr.textContent = "Please enter your password";
       hasError = true;
     } else if (existingAccount && password !== existingAccount.password) {
-      signinPassWrap?.classList.add("input-error");
-      if (signinPassErr) signinPassErr.textContent = "The password you enter is incorrect";
-      showFormAlert("signin-alert-box", "The password you enter is incorrect", false);
-      hasError = true;
-    } else if (existingAccount && password !== existingAccount.password) {
-      signinPassWrap?.classList.add("input-error");
-      if (signinPassErr) signinPassErr.textContent = "The password you enter is incorrect";
-      hasError = true;
-      } else {
-      signinPassWrap?.classList.remove("input-error");
-      if (signinPassErr) signinPassErr.textContent = "";
-    }
+  signinPassWrap?.classList.add("input-error");
+
+  if (signinPassErr) {
+    signinPassErr.textContent = "The password you enter is incorrect";
+  }
+
+  hasError = true;
+}
+
     // I-save ang active session para manatili sa Dashboard kahit i-refresh ang browser
     localStorage.setItem(
       "copracure_active_session",
@@ -915,14 +912,27 @@ function initAuthViews() {
   });
 
   // LOG OUT
-  document.getElementById("btn-logout")?.addEventListener("click", () => {
-    localStorage.removeItem("copracure_active_session");
-    dashboardView?.classList.remove("active-view");
-    signinView?.classList.add("active-view");
-    const passInput = document.getElementById("signin-password");
-    if (passInput) passInput.value = "";
-    showToast("Signed out successfully.");
+document.getElementById("btn-logout")?.addEventListener("click", () => {
+  localStorage.removeItem("copracure_active_session");
+
+  dashboardView?.classList.remove("active-view");
+  signinView?.classList.add("active-view");
+
+  // I-reset ang sign-in form at lahat ng dating error
+  document.getElementById("signin-form")?.reset();
+  hideFormAlert("signin-alert-box");
+
+  [
+    ["signin-id-wrap", "signin-id-error"],
+    ["signin-pass-wrap", "signin-pass-error"]
+  ].forEach(([wrapId, errorId]) => {
+
+    const errorEl = document.getElementById(errorId);
+    if (errorEl) errorEl.textContent = "";
   });
+
+  showToast("Signed out successfully.");
+});
 }
 
 /* ==========================================================================
