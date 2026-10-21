@@ -616,13 +616,27 @@ function saveRegisteredAccounts(accounts) {
   localStorage.setItem("copracure_registered_users", JSON.stringify(accounts));
 }
 
+
+
 function findAccountByIdentifier(identifier) {
   const clean = (identifier || "").trim().toLowerCase();
   if (!clean) return undefined;
-  return getRegisteredAccounts().find(
-    (acc) => acc && typeof acc.identifier === "string" && acc.identifier.trim().toLowerCase() === clean
-  );
+
+  return getRegisteredAccounts().find((acc) => {
+    if (!acc) return false;
+
+    const savedIdentifier = (acc.identifier || "").trim().toLowerCase();
+    const savedMobile = (acc.mobileNumber || acc.mobile_number || "").trim().toLowerCase();
+    const savedEmail = (acc.email || "").trim().toLowerCase();
+
+    return (
+      savedIdentifier === clean ||
+      savedMobile === clean ||
+      savedEmail === clean
+    );
+  });
 }
+
 
 /**
  * Ina-update ang greeting sa Dashboard:
@@ -835,16 +849,33 @@ function initAuthViews() {
     const signinIdErr = document.getElementById("signin-id-error");
     const signinPassWrap = document.getElementById("signin-pass-wrap");
     const signinPassErr = document.getElementById("signin-pass-error");
+   
+if (!idValid) {
+  signinIdWrap?.classList.add("input-error");
 
-    if (!idValid) {
-      signinIdWrap?.classList.add("input-error");
+  if (signinIdErr) {
+    signinIdErr.textContent = "Invalid email or number";
+  }
 
-      if (signinIdErr) signinIdErr.textContent = "Invalid email or number";
-    }
+  hasError = true;
+} else if (!existingAccount) {
+  signinIdWrap?.classList.add("input-error");
+
+  if (signinIdErr) {
+    signinIdErr.textContent = "Account does not exist!";
+  }
+
+  hasError = true;
+} else {
+  signinIdWrap?.classList.remove("input-error");
+
+  if (signinIdErr) {
+    signinIdErr.textContent = "";
+  }
+}
+
     
-    hasError = true;
-    
-    // 2. Check Password
+// 2. Check Password
     if (!existingAccount) {
       hasError = true;
     } else if (!password) {
@@ -865,6 +896,18 @@ function initAuthViews() {
         signinPassErr.textContent = "";
       }
     }
+
+      // DITO ILALAGAY
+      if (hasError) return;
+
+      // Dito magsisimula ang pag-save ng session
+      localStorage.setItem(
+        "copracure_active_session",
+        JSON.stringify({
+          identifier: existingAccount.identifier,
+          fullName: existingAccount.fullName
+        })
+      );
 
     // STOP kapag may error
     if (hasError) return;
