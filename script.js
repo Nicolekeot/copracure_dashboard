@@ -19,12 +19,11 @@ const SUPABASE_URL = "https://wvpyqzzcfzwtmcfaeejz.supabase.co";
 const SUPABASE_ANON_KEY = "sb_publishable_ck7UlFR4ZoCBEmqgqx0KXA_7Kzzn4bg";
 
 let supabaseClient = null;
-if (
-  window.supabase &&
-  SUPABASE_URL.startsWith("https://wvpyqzzcfzwtmcfaeejz.supabase.co") &&
-  !SUPABASE_URL.includes("sb_publishable_ck7UlFR4ZoCBEmqgqx0KXA_7Kzzn4bg")
-) {
+if (window.supabase) {
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+  console.log("Supabase Client Initialized Successfully!");
+} else {
+  console.error("Supabase SDK not loaded! Check internet connection or adblockers.");
 }
 
 const PASSWORD_MIN_LENGTH = 8;
@@ -1964,11 +1963,21 @@ function initSupabaseRealtime() {
 }
 
 async function insertSupabaseRecord(tableName, data) {
-  if (!supabaseClient) return;
+  if (!supabaseClient) {
+    console.error(`Supabase is offline. Cannot save data to ${tableName}.`);
+    return;
+  }
+  
   try {
-    await supabaseClient.from(tableName).insert([data]);
+    const { error } = await supabaseClient.from(tableName).insert([data]);
+    
+    if (error) {
+      console.error(`❌ Supabase Insert Error (${tableName}):`, error.message, error.details || "");
+    } else {
+      console.log(`✅ Data successfully saved to ${tableName}!`);
+    }
   } catch (e) {
-    console.warn(`Supabase log skipped (${tableName}):`, e.message);
+    console.error(`❌ System error saving to ${tableName}:`, e.message);
   }
 }
 
