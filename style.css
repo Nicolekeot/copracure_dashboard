@@ -2481,23 +2481,110 @@ html[data-theme="dark"] .stat-val { color: #4ade80; }
   }
 
   .top-navbar {
-    transform: none !important;
+    border-radius: 18px;
+    padding: 12px;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 10px;
+    transform: none !important; /* Para makawala at mag-center ang notifications */
+  }
+
+  .brand-logo-nav {
+    justify-content: center;
+  }
+
+  .nav-pill-container {
+    width: 100%;
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    padding: 6px;
+    -webkit-overflow-scrolling: touch;
+  }
+
+  .nav-actions {
+    width: 100%;
+    justify-content: center;
+    gap: 14px;
+  }
+
+  .dashboard-body {
+    grid-template-columns: 1fr;
+  }
+
+  .left-sidebar {
+    position: fixed;
+    bottom: 8px;
+    left: 8px;
+    right: 8px;
+    top: auto;
+    flex-direction: row;
+    justify-content: space-between;
+    background: var(--bg-card);
+    padding: 6px 10px;
+    border-radius: 999px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.3);
+    z-index: 900;
+    overflow-x: auto;
+  }
+
+  .sidebar-pill-group {
+    flex-direction: row;
+    background: transparent;
+    box-shadow: none;
+    border: none;
+    padding: 0;
+    gap: 4px;
+  }
+
+  .side-icon-btn {
+    width: 38px;
+    height: 38px;
+    flex-shrink: 0;
+  }
+
+  .metrics-grid,
+  .session-stats-grid,
+  .batch-two-col,
+  .profile-action-row {
+    grid-template-columns: 1fr;
+  }
+
+  .glass-panel {
+    padding: 16px;
+    border-radius: 18px;
+  }
+
+  .welcome-banner h2 {
+    font-size: 1.35rem;
+  }
+
+  .cal-control-buttons button,
+  .alert-action-buttons button {
+    width: 100%;
+    justify-content: center;
+    min-height: 44px;
+  }
+
+  .calibration-status-wrapper {
+    align-items: flex-start;
+    width: 100%;
   }
 
   /* Piliting i-center ang Notifications Panel at lagyan ng dark overlay */
   .floating-dropdown.notif-dropdown-panel {
     position: fixed !important;
-    top: 8vh !important; /* Laging mag-uumpisa sa baba ng address bar */
+    top: 8vh !important;
     left: 0 !important;
     right: 0 !important;
-    margin: 0 auto !important; /* Gitna horizontally */
-    transform: none !important; /* Tinanggal ang translate na nagtutulak pataas */
+    margin: 0 auto !important;
+    transform: none !important;
     width: 92vw !important;
     height: auto !important;
-    max-height: 80vh !important; /* Papayagan ang scrolling kung mahaba */
+    max-height: 80vh !important;
     z-index: 2000 !important;
     box-shadow: 0 0 0 100vmax rgba(15, 23, 42, 0.58), 0 20px 45px rgba(0, 0, 0, 0.28) !important;
-    overflow-y: auto !important; 
+    overflow-y: auto !important;
   }
 }
 
