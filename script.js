@@ -20,7 +20,6 @@ const SUPABASE_ANON_KEY = "sb_publishable_h0U05WcbvI6VT03EVrxtgg_Acj5c_zK";
 
 let supabaseClient = null;
 if (window.supabase) {
-  // Ginamit ang mismong variables para tama ang format
   supabaseClient = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
   console.log("Supabase Client Initialized Successfully!");
 } else {
@@ -157,7 +156,7 @@ const i18nDict = {
     log_batch_title: "Log Batch Results",
     sec_notif_center_title: "Notification & Important Chamber SMS Center",
     sec_notif_center_sub: "SMS notifications are reserved only for important events: High Temperature, Mold Detection, Sensor Calibration Needed, Account Updated, and Welcome Sign-In."
-  }, // <-- DINAGDAG NA KUWIT DITO
+  },
 
   tl: {
     welcome_copracure: "Welcome to CopraCure!",
@@ -211,9 +210,7 @@ const i18nDict = {
     trends_title: "Historikal na Trend: 24 Oras",
     log_batch_title: "Itala ang Resulta ng Batch",
     sec_notif_center_title: "Sentro ng Notification at Mahahalagang SMS",
-    sec_notif_center_sub: "Ang SMS alerts ay para lamang sa mahahalagang mensahe: High Temperature, Mold Detection, Sensor Calibration Needed, Account Updated, at Welcome Sign-In.", // <-- DINAGDAG NA KUWIT DITO
-  
-  // Idagdag ito sa loob ng i18nDict.tl
+    sec_notif_center_sub: "Ang SMS alerts ay para lamang sa mahahalagang mensahe: High Temperature, Mold Detection, Sensor Calibration Needed, Account Updated, at Welcome Sign-In.",
     ph_admin_pass: "Ilagay ang developer passcode",
     modal_forgot_sub: "Piliin kung saan mo gustong ipadala ang iyong 6-digit Reset Code (SMS sa iyong Mobile Number o sa iyong Email).",
     modal_profile_sub: "I-update ang iyong personal na detalye, mobile number/email para sa important SMS alerts, o burahin ang iyong account.",
@@ -246,49 +243,51 @@ document.addEventListener("DOMContentLoaded", () => {
   initLocal16x2LcdModal();
   initSupabaseRealtime();
 
-  // TAWAGIN DITO PARA GUMANA PAGKA-REFRESH:
+  // Pinapanatili ang active session kapag nag-refresh ng page
   checkActiveSession();
 
-  document.getElementById("close-sms-banner").addEventListener("click", () => {
-    document.getElementById("live-sms-banner").classList.remove("show");
+  document.getElementById("close-sms-banner")?.addEventListener("click", () => {
+    document.getElementById("live-sms-banner")?.classList.remove("show");
   });
 });
 
-// ILAGAY ANG FUNCTION SA LABAS NG DOMContentLoaded:
 function checkActiveSession() {
   try {
     const sessionRaw = localStorage.getItem("copracure_active_session");
     if (!sessionRaw) return;
 
     const session = JSON.parse(sessionRaw);
-    const account = findAccountByIdentifier(session.identifier);
+    if (!session || !session.identifier) return;
 
-    if (account) {
-      state.currentUserFullName = account.fullName;
-      state.currentUser = account.fullName.split(" ")[0];
-      state.currentUserIdentifier = account.identifier;
-      state.smsRecipientNumber = account.identifier;
-      state.isFirstTimeLogin = false;
+    const account = findAccountByIdentifier(session.identifier) || session;
 
-      document.getElementById("sms-active-number").textContent = account.identifier;
-      document.getElementById("sms-recipient-input").value = account.identifier;
+    state.currentUserFullName = account.fullName || "User";
+    state.currentUser = state.currentUserFullName.split(" ")[0];
+    state.currentUserIdentifier = account.identifier;
+    state.smsRecipientNumber = account.identifier;
+    state.isFirstTimeLogin = false;
 
-      document.getElementById("signin-view")?.classList.remove("active-view");
-      document.getElementById("signup-view")?.classList.remove("active-view");
-      document.getElementById("dashboard-view")?.classList.add("active-view");
+    document.getElementById("signin-view")?.classList.remove("active-view");
+    document.getElementById("signup-view")?.classList.remove("active-view");
+    document.getElementById("dashboard-view")?.classList.add("active-view");
 
-      updateDashboardWelcomeBanner();
-    }
+    const smsActiveEl = document.getElementById("sms-active-number");
+    if (smsActiveEl) smsActiveEl.textContent = account.identifier;
+
+    const smsInputEl = document.getElementById("sms-recipient-input");
+    if (smsInputEl) smsInputEl.value = account.identifier;
+
+    updateDashboardWelcomeBanner();
   } catch (e) {
     console.error("Session check failed:", e);
   }
-};
+}
 
 /* ==========================================================================
    1. VALIDATORS (CONCISE ERROR MESSAGES)
    ========================================================================== */
 function isMobileInput(value) {
-  const trimmed = value.trim();
+  const trimmed = (value || "").trim();
   if (!trimmed) return false;
   return !/[a-zA-Z@]/.test(trimmed);
 }
@@ -297,6 +296,7 @@ function isMobileInput(value) {
  * Nagbabalik ng "Invalid email or number" kapag mali ang format ng mobile o email
  */
 function validateIdentifierInput(inputEl, wrapEl, errorEl) {
+  if (!inputEl) return false;
   let raw = inputEl.value.trim();
 
   if (!raw) {
@@ -337,6 +337,7 @@ function validateIdentifierInput(inputEl, wrapEl, errorEl) {
  * Sa Sign Up / Profile / Reset: "Please enter at least 8 characters"
  */
 function validateSignupPasswordInput(inputEl, wrapEl, errorEl) {
+  if (!inputEl) return false;
   const val = inputEl.value;
 
   if (val.length < PASSWORD_MIN_LENGTH) {
@@ -359,7 +360,7 @@ function validateConfirmPasswordInput() {
   const wrapEl = document.getElementById("signup-confirm-wrap");
   const errorEl = document.getElementById("signup-confirm-error");
 
-  if (!confirmEl.value || confirmEl.value !== passEl.value) {
+  if (!confirmEl || !passEl || !confirmEl.value || confirmEl.value !== passEl.value) {
     if (wrapEl) wrapEl.classList.add("input-error");
     if (errorEl) errorEl.textContent = "Password does not match";
     return false;
@@ -378,7 +379,6 @@ function initInputValidators() {
     { input: "profile-identifier", wrap: "profile-id-wrap", err: "profile-id-error" }
   ];
 
-  // Nililinis lamang ang error kapag nag-type ulit ang user (Walang real-time validation)
   idFields.forEach(({ input, wrap, err }) => {
     const el = document.getElementById(input);
     if (el) {
@@ -390,7 +390,6 @@ function initInputValidators() {
     }
   });
 
-  // Sign In password: clear error while typing
   const signinPass = document.getElementById("signin-password");
   if (signinPass) {
     signinPass.addEventListener("input", () => {
@@ -400,7 +399,6 @@ function initInputValidators() {
     });
   }
 
-  // Sign Up / Reset / Profile password: clear error while typing
   const signupPassFields = [
     { input: "signup-password", wrap: "signup-pass-wrap", err: "signup-pass-error" },
     { input: "signup-confirm", wrap: "signup-confirm-wrap", err: "signup-confirm-error" },
@@ -427,12 +425,12 @@ function initThemeAndLanguageIcons() {
   const btnThemeToggle = document.getElementById("btn-theme-toggle");
   const btnLangToggle = document.getElementById("btn-lang-toggle");
 
-  btnThemeToggle.addEventListener("click", () => {
+  btnThemeToggle?.addEventListener("click", () => {
     const nextTheme = state.theme === "light" ? "dark" : "light";
     setTheme(nextTheme);
   });
 
-  btnLangToggle.addEventListener("click", () => {
+  btnLangToggle?.addEventListener("click", () => {
     const nextLang = state.lang === "en" ? "tl" : "en";
     setLanguage(nextLang);
   });
@@ -479,18 +477,18 @@ function initNotificationsDropdown() {
   renderNotificationsList();
   renderPhoneSmsInbox();
 
-  bellBtn.addEventListener("click", (e) => {
+  bellBtn?.addEventListener("click", (e) => {
     e.stopPropagation();
-    dropdown.classList.toggle("open");
+    dropdown?.classList.toggle("open");
   });
 
-  btnMarkRead.addEventListener("click", () => {
+  btnMarkRead?.addEventListener("click", () => {
     state.notifications.forEach((n) => (n.unread = false));
     renderNotificationsList();
     showToast("All notifications marked as read.");
   });
 
-  btnClear.addEventListener("click", () => {
+  btnClear?.addEventListener("click", () => {
     state.notifications = [];
     renderNotificationsList();
     showToast("Notifications cleared.");
@@ -510,7 +508,7 @@ function initNotificationsDropdown() {
   }
 
   document.addEventListener("click", (e) => {
-    if (!dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
+    if (dropdown && bellBtn && !dropdown.contains(e.target) && !bellBtn.contains(e.target)) {
       dropdown.classList.remove("open");
     }
   });
@@ -523,7 +521,6 @@ function initNotificationsDropdown() {
 function addNotification(message, isDanger = false, sendImportantSms = false, customSmsText = null) {
   const nowStr = new Date().toLocaleTimeString();
 
-  // 1. I-save sa local memory para makita sa dashboard
   state.notifications.unshift({
     id: Date.now(),
     text: message,
@@ -534,16 +531,14 @@ function addNotification(message, isDanger = false, sendImportantSms = false, cu
 
   renderNotificationsList();
 
-  // 2. I-save sa Supabase 'alerts' table kapag ito ay mahalagang babala (Danger o SMS triggered)
   if (isDanger || sendImportantSms) {
     insertSupabaseRecord("alerts", {
       session_id: state.sessionId,
-      alert_type: message.substring(0, 255), // Sinisiguro na hindi lalagpas sa text limit
+      alert_type: message.substring(0, 255),
       alert_status: "ACTIVE"
     });
   }
 
-  // 3. I-trigger ang SMS dispatch kung kailangan
   const trigImportantCheck = document.getElementById("sms-trig-all-notifs");
   const shouldSendSms =
     sendImportantSms &&
@@ -599,7 +594,8 @@ function renderNotificationsList() {
 function getRegisteredAccounts() {
   try {
     const raw = localStorage.getItem("copracure_registered_users");
-    return raw ? JSON.parse(raw) : [];
+    const parsed = raw ? JSON.parse(raw) : [];
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
@@ -610,8 +606,11 @@ function saveRegisteredAccounts(accounts) {
 }
 
 function findAccountByIdentifier(identifier) {
-  const clean = identifier.trim().toLowerCase();
-  return getRegisteredAccounts().find((acc) => acc.identifier.toLowerCase() === clean);
+  const clean = (identifier || "").trim().toLowerCase();
+  if (!clean) return undefined;
+  return getRegisteredAccounts().find(
+    (acc) => acc && typeof acc.identifier === "string" && acc.identifier.trim().toLowerCase() === clean
+  );
 }
 
 /**
@@ -655,76 +654,88 @@ function initAuthViews() {
   const signupView = document.getElementById("signup-view");
   const dashboardView = document.getElementById("dashboard-view");
 
-  document.getElementById("go-to-signup").addEventListener("click", (e) => {
+  document.getElementById("go-to-signup")?.addEventListener("click", (e) => {
     e.preventDefault();
     hideFormAlert("signin-alert-box");
-    signinView.classList.remove("active-view");
-    signupView.classList.add("active-view");
+    signinView?.classList.remove("active-view");
+    signupView?.classList.add("active-view");
   });
 
-  document.getElementById("go-to-signin").addEventListener("click", (e) => {
+  document.getElementById("go-to-signin")?.addEventListener("click", (e) => {
     e.preventDefault();
     hideFormAlert("signup-alert-box");
-    signupView.classList.remove("active-view");
-    signinView.classList.add("active-view");
+    signupView?.classList.remove("active-view");
+    signinView?.classList.add("active-view");
   });
 
   // SIGN UP
-  document.getElementById("signup-form").addEventListener("submit", async (e) => {
+  document.getElementById("signup-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideFormAlert("signup-alert-box");
 
-    const fullName = document.getElementById("signup-fullname").value.trim();
+    const fullName = document.getElementById("signup-fullname")?.value.trim() || "";
     const idEl = document.getElementById("signup-identifier");
     const passEl = document.getElementById("signup-password");
     const confirmEl = document.getElementById("signup-confirm");
-    const identifier = idEl.value.trim();
 
     let hasError = false;
 
     // 1. Check Full Name
+    const nameErrEl = document.getElementById("signup-name-error");
     if (!fullName) {
-      document.getElementById("signup-name-error").textContent = "Please enter your full name";
+      if (nameErrEl) nameErrEl.textContent = "Please enter your full name";
       hasError = true;
     } else {
-      document.getElementById("signup-name-error").textContent = "";
+      if (nameErrEl) nameErrEl.textContent = "";
     }
 
     // 2. Check Identifier Format at kung may Account na
-    const idValid = validateIdentifierInput(idEl, document.getElementById("signup-id-wrap"), document.getElementById("signup-id-error"));
+    const idValid = validateIdentifierInput(
+      idEl,
+      document.getElementById("signup-id-wrap"),
+      document.getElementById("signup-id-error")
+    );
+    const identifier = idEl ? idEl.value.trim() : "";
     const existingAccount = findAccountByIdentifier(identifier);
 
     if (!idValid) {
-      document.getElementById("signup-id-wrap").classList.add("input-error");
-      document.getElementById("signup-id-error").textContent = "Invalid email or number";
+      document.getElementById("signup-id-wrap")?.classList.add("input-error");
+      const errEl = document.getElementById("signup-id-error");
+      if (errEl) errEl.textContent = "Invalid email or number";
       hasError = true;
     } else if (existingAccount) {
-      document.getElementById("signup-id-wrap").classList.add("input-error");
-      document.getElementById("signup-id-error").textContent = "Account already exists. Please Sign In.";
+      document.getElementById("signup-id-wrap")?.classList.add("input-error");
+      const errEl = document.getElementById("signup-id-error");
+      if (errEl) errEl.textContent = "Account already exists. Please Sign In.";
       hasError = true;
     } else {
-      document.getElementById("signup-id-wrap").classList.remove("input-error");
-      document.getElementById("signup-id-error").textContent = "";
+      document.getElementById("signup-id-wrap")?.classList.remove("input-error");
+      const errEl = document.getElementById("signup-id-error");
+      if (errEl) errEl.textContent = "";
     }
 
-    // 3. Strict Password Check (Eksaktong 8 characters)
-    if (passEl.value.length !== 8) {
-      document.getElementById("signup-pass-wrap").classList.add("input-error");
-      document.getElementById("signup-pass-error").textContent = "Please enter exactly 8 characters";
+    // 3. Password Check (At least 8 characters)
+    if (!passEl || passEl.value.length < PASSWORD_MIN_LENGTH) {
+      document.getElementById("signup-pass-wrap")?.classList.add("input-error");
+      const errEl = document.getElementById("signup-pass-error");
+      if (errEl) errEl.textContent = "Please enter at least 8 characters";
       hasError = true;
     } else {
-      document.getElementById("signup-pass-wrap").classList.remove("input-error");
-      document.getElementById("signup-pass-error").textContent = "";
+      document.getElementById("signup-pass-wrap")?.classList.remove("input-error");
+      const errEl = document.getElementById("signup-pass-error");
+      if (errEl) errEl.textContent = "";
     }
 
     // 4. Confirm Password Check
-    if (!confirmEl.value || confirmEl.value !== passEl.value) {
-      document.getElementById("signup-confirm-wrap").classList.add("input-error");
-      document.getElementById("signup-confirm-error").textContent = "Password does not match";
+    if (!confirmEl || !confirmEl.value || confirmEl.value !== passEl.value) {
+      document.getElementById("signup-confirm-wrap")?.classList.add("input-error");
+      const errEl = document.getElementById("signup-confirm-error");
+      if (errEl) errEl.textContent = "Password does not match";
       hasError = true;
     } else {
-      document.getElementById("signup-confirm-wrap").classList.remove("input-error");
-      document.getElementById("signup-confirm-error").textContent = "";
+      document.getElementById("signup-confirm-wrap")?.classList.remove("input-error");
+      const errEl = document.getElementById("signup-confirm-error");
+      if (errEl) errEl.textContent = "";
     }
 
     if (hasError) return;
@@ -735,7 +746,7 @@ function initAuthViews() {
       password: passEl.value,
       mobileNumber: identifier,
       loginCount: 0,
-      role: fullName.toLowerCase().includes('admin') ? 'Admin' : 'User',
+      role: fullName.toLowerCase().includes("admin") ? "Admin" : "User",
       createdAt: new Date().toISOString()
     };
 
@@ -743,16 +754,18 @@ function initAuthViews() {
     accounts.push(newAcc);
     saveRegisteredAccounts(accounts);
 
-    await insertSupabaseRecord("registered_users", {
+    insertSupabaseRecord("registered_users", {
       full_name: fullName,
       identifier: identifier,
       mobile_number: newAcc.mobileNumber
     });
 
-    document.getElementById("signup-form").reset();
-    document.getElementById("signup-view").classList.remove("active-view");
-    document.getElementById("signin-view").classList.add("active-view");
-    document.getElementById("signin-identifier").value = identifier;
+    document.getElementById("signup-form")?.reset();
+    signupView?.classList.remove("active-view");
+    signinView?.classList.add("active-view");
+
+    const signinIdEl = document.getElementById("signin-identifier");
+    if (signinIdEl) signinIdEl.value = identifier;
 
     showFormAlert(
       "signin-alert-box",
@@ -761,98 +774,127 @@ function initAuthViews() {
     );
   });
 
-    // SIGN IN
-  document.getElementById("signin-form").addEventListener("submit", async (e) => {
+  // SIGN IN
+  document.getElementById("signin-form")?.addEventListener("submit", async (e) => {
     e.preventDefault();
     hideFormAlert("signin-alert-box");
 
     const idEl = document.getElementById("signin-identifier");
     const passEl = document.getElementById("signin-password");
-    const identifier = idEl.value.trim();
-    const password = passEl.value;
+    const password = passEl ? passEl.value : "";
 
     let hasError = false;
 
     // 1. Check Identifier (Email or Number) at Account Existence
-    const idValid = validateIdentifierInput(idEl, document.getElementById("signin-id-wrap"), document.getElementById("signin-id-error"));
+    const idValid = validateIdentifierInput(
+      idEl,
+      document.getElementById("signin-id-wrap"),
+      document.getElementById("signin-id-error")
+    );
+    const identifier = idEl ? idEl.value.trim() : "";
     const existingAccount = findAccountByIdentifier(identifier);
 
+    const signinIdWrap = document.getElementById("signin-id-wrap");
+    const signinIdErr = document.getElementById("signin-id-error");
+    const signinPassWrap = document.getElementById("signin-pass-wrap");
+    const signinPassErr = document.getElementById("signin-pass-error");
+
     if (!idValid) {
-      document.getElementById("signin-id-wrap").classList.add("input-error");
-      document.getElementById("signin-id-error").textContent = "Invalid email or number";
+      signinIdWrap?.classList.add("input-error");
+      if (signinIdErr) signinIdErr.textContent = "Invalid email or number";
+      showFormAlert("signin-alert-box", "Invalid email or number", false);
       hasError = true;
     } else if (!existingAccount) {
-      document.getElementById("signin-id-wrap").classList.add("input-error");
-      document.getElementById("signin-id-error").textContent = "Account does not exist! please sign up to access the dashboard.";
+      signinIdWrap?.classList.add("input-error");
+      const msg = "Account does not exist! Please sign up to access the dashboard.";
+      if (signinIdErr) signinIdErr.textContent = msg;
+      showFormAlert("signin-alert-box", msg, false);
       hasError = true;
     } else {
-      document.getElementById("signin-id-wrap").classList.remove("input-error");
-      document.getElementById("signin-id-error").textContent = "";
+      signinIdWrap?.classList.remove("input-error");
+      if (signinIdErr) signinIdErr.textContent = "";
     }
 
-    // 2. Check Password (Lalabas lang kung tama ang email ngunit mali ang password)
-    if (existingAccount && password !== existingAccount.password) {
-      document.getElementById("signin-pass-wrap").classList.add("input-error");
-      document.getElementById("signin-pass-error").textContent = "The password you enter is incorrect";
+    // 2. Check Password
+    if (existingAccount && !password) {
+      signinPassWrap?.classList.add("input-error");
+      if (signinPassErr) signinPassErr.textContent = "Please enter your password";
+      showFormAlert("signin-alert-box", "Please enter your password", false);
       hasError = true;
-    } else if (existingAccount && !password) {
-      document.getElementById("signin-pass-wrap").classList.add("input-error");
-      document.getElementById("signin-pass-error").textContent = "Please enter your password";
+    } else if (existingAccount && password !== existingAccount.password) {
+      signinPassWrap?.classList.add("input-error");
+      if (signinPassErr) signinPassErr.textContent = "The password you enter is incorrect";
+      showFormAlert("signin-alert-box", "The password you enter is incorrect", false);
       hasError = true;
     } else {
-      document.getElementById("signin-pass-wrap").classList.remove("input-error");
-      document.getElementById("signin-pass-error").textContent = "";
+      signinPassWrap?.classList.remove("input-error");
+      if (signinPassErr) signinPassErr.textContent = "";
     }
 
     if (hasError) return;
 
-    // DITO DAPAT ILAGAY ANG ACTIVE SESSION SAVE (Pagkatapos ma-verify na walang error):
-    localStorage.setItem("copracure_active_session", JSON.stringify({
-      identifier: existingAccount.identifier,
-      fullName: existingAccount.fullName
-    }));
+    // I-save ang active session para manatili sa Dashboard kahit i-refresh ang browser
+    localStorage.setItem(
+      "copracure_active_session",
+      JSON.stringify({
+        identifier: existingAccount.identifier,
+        fullName: existingAccount.fullName
+      })
+    );
 
-    // Proceed to login
     const previousLogins = Number(existingAccount.loginCount || 0);
     state.isFirstTimeLogin = previousLogins === 0;
 
     const accounts = getRegisteredAccounts();
-    const accIdx = accounts.findIndex((a) => a.identifier.toLowerCase() === identifier.toLowerCase());
+    const accIdx = accounts.findIndex(
+      (a) => a && typeof a.identifier === "string" && a.identifier.trim().toLowerCase() === identifier.toLowerCase()
+    );
     if (accIdx !== -1) {
       accounts[accIdx].loginCount = previousLogins + 1;
       saveRegisteredAccounts(accounts);
     }
 
-    state.currentUserFullName = existingAccount.fullName;
-    state.currentUser = existingAccount.fullName.split(" ")[0];
+    state.currentUserFullName = existingAccount.fullName || "User";
+    state.currentUser = state.currentUserFullName.split(" ")[0];
     state.currentUserIdentifier = existingAccount.identifier;
     state.smsRecipientNumber = existingAccount.identifier;
 
-    document.getElementById("sms-active-number").textContent = existingAccount.identifier;
-    document.getElementById("sms-recipient-input").value = existingAccount.identifier;
+    // Lumipat agad sa Dashboard view
+    signinView?.classList.remove("active-view");
+    signupView?.classList.remove("active-view");
+    dashboardView?.classList.add("active-view");
 
-    updateDashboardWelcomeBanner();
+    // Null-safe updates sa Dashboard UI
+    try {
+      const smsActiveEl = document.getElementById("sms-active-number");
+      if (smsActiveEl) smsActiveEl.textContent = existingAccount.identifier;
 
-    document.getElementById("signin-view").classList.remove("active-view");
-    document.getElementById("dashboard-view").classList.add("active-view");
+      const smsInputEl = document.getElementById("sms-recipient-input");
+      if (smsInputEl) smsInputEl.value = existingAccount.identifier;
 
-    if (state.isFirstTimeLogin) {
-      const welcomeSms = `Thank you for signing In, ${state.currentUser}! Welcome to CopraCure Dashboard!`;
-      addNotification(welcomeSms, false, true, welcomeSms);
-    } else {
-      addNotification(`Welcome Back, ${state.currentUser}! Signed in to CopraCure Dashboard.`, false, false);
+      updateDashboardWelcomeBanner();
+
+      if (state.isFirstTimeLogin) {
+        const welcomeSms = `Thank you for signing In, ${state.currentUser}! Welcome to CopraCure Dashboard!`;
+        addNotification(welcomeSms, false, true, welcomeSms);
+      } else {
+        addNotification(`Welcome Back, ${state.currentUser}! Signed in to CopraCure Dashboard.`, false, false);
+      }
+    } catch (uiErr) {
+      console.warn("Non-critical UI update warning:", uiErr);
     }
   });
 
   // LOG OUT
-  document.getElementById("btn-logout").addEventListener("click", () => {
+  document.getElementById("btn-logout")?.addEventListener("click", () => {
     localStorage.removeItem("copracure_active_session");
-    dashboardView.classList.remove("active-view");
-    signinView.classList.add("active-view");
-    document.getElementById("signin-password").value = "";
+    dashboardView?.classList.remove("active-view");
+    signinView?.classList.add("active-view");
+    const passInput = document.getElementById("signin-password");
+    if (passInput) passInput.value = "";
     showToast("Signed out successfully.");
   });
-} // <-- IMPORTANTE: Pang-sara ito ng initAuthViews() function!
+}
 
 /* ==========================================================================
    5. USER PROFILE MODAL (UPDATE ACCOUNT -> SENDS "AccountUpdated!" SMS)
@@ -864,20 +906,24 @@ function initUserProfileModal() {
   const formUpdate = document.getElementById("profile-update-form");
   const btnDelete = document.getElementById("btn-delete-account");
 
-  btnProfile.addEventListener("click", () => {
+  btnProfile?.addEventListener("click", () => {
     hideFormAlert("profile-alert-box");
     const acc = findAccountByIdentifier(state.currentUserIdentifier);
-    document.getElementById("profile-fullname").value = acc ? acc.fullName : state.currentUserFullName;
-    document.getElementById("profile-identifier").value = acc ? acc.identifier : state.currentUserIdentifier;
-    document.getElementById("profile-password").value = acc ? acc.password : "12345678";
-    modal.classList.add("open");
+    const nameInput = document.getElementById("profile-fullname");
+    const idInput = document.getElementById("profile-identifier");
+    const passInput = document.getElementById("profile-password");
+
+    if (nameInput) nameInput.value = acc ? acc.fullName : state.currentUserFullName;
+    if (idInput) idInput.value = acc ? acc.identifier : state.currentUserIdentifier;
+    if (passInput) passInput.value = acc ? acc.password : "12345678";
+    modal?.classList.add("open");
   });
 
-  btnClose.addEventListener("click", () => modal.classList.remove("open"));
+  btnClose?.addEventListener("click", () => modal?.classList.remove("open"));
 
-  formUpdate.addEventListener("submit", async (e) => {
+  formUpdate?.addEventListener("submit", async (e) => {
     e.preventDefault();
-    const newName = document.getElementById("profile-fullname").value.trim();
+    const newName = document.getElementById("profile-fullname")?.value.trim() || "";
     const idEl = document.getElementById("profile-identifier");
     const passEl = document.getElementById("profile-password");
 
@@ -889,7 +935,9 @@ function initUserProfileModal() {
     }
 
     const accounts = getRegisteredAccounts();
-    const idx = accounts.findIndex((a) => a.identifier.toLowerCase() === state.currentUserIdentifier.toLowerCase());
+    const idx = accounts.findIndex(
+      (a) => a && typeof a.identifier === "string" && a.identifier.toLowerCase() === state.currentUserIdentifier.toLowerCase()
+    );
     const prevLoginCount = idx !== -1 ? Number(accounts[idx].loginCount || 1) : 1;
 
     const updatedAccount = {
@@ -908,16 +956,25 @@ function initUserProfileModal() {
     }
     saveRegisteredAccounts(accounts);
 
+    localStorage.setItem(
+      "copracure_active_session",
+      JSON.stringify({
+        identifier: updatedAccount.identifier,
+        fullName: updatedAccount.fullName
+      })
+    );
+
     state.currentUserFullName = newName;
     state.currentUser = newName.split(" ")[0];
     state.currentUserIdentifier = updatedAccount.identifier;
     state.smsRecipientNumber = updatedAccount.identifier;
 
     updateDashboardWelcomeBanner();
-    document.getElementById("sms-active-number").textContent = updatedAccount.identifier;
-    document.getElementById("sms-recipient-input").value = updatedAccount.identifier;
+    const smsActiveEl = document.getElementById("sms-active-number");
+    if (smsActiveEl) smsActiveEl.textContent = updatedAccount.identifier;
+    const smsInputEl = document.getElementById("sms-recipient-input");
+    if (smsInputEl) smsInputEl.value = updatedAccount.identifier;
 
-    // Important SMS Alert para sa Account Update
     addNotification(
       `AccountUpdated! Profile details for ${newName} have been updated.`,
       false,
@@ -929,22 +986,25 @@ function initUserProfileModal() {
     showToast("AccountUpdated!");
   });
 
-  btnDelete.addEventListener("click", async () => {
+  btnDelete?.addEventListener("click", async () => {
     const confirmed = window.confirm(
       `Are you sure you want to permanently delete the account of ${state.currentUserFullName}?`
     );
     if (!confirmed) return;
 
     const accounts = getRegisteredAccounts().filter(
-      (a) => a.identifier.toLowerCase() !== state.currentUserIdentifier.toLowerCase()
+      (a) => a && typeof a.identifier === "string" && a.identifier.toLowerCase() !== state.currentUserIdentifier.toLowerCase()
     );
     saveRegisteredAccounts(accounts);
+    localStorage.removeItem("copracure_active_session");
 
-    modal.classList.remove("open");
-    document.getElementById("dashboard-view").classList.remove("active-view");
-    document.getElementById("signin-view").classList.add("active-view");
-    document.getElementById("signin-identifier").value = "";
-    document.getElementById("signin-password").value = "";
+    modal?.classList.remove("open");
+    document.getElementById("dashboard-view")?.classList.remove("active-view");
+    document.getElementById("signin-view")?.classList.add("active-view");
+    const signinId = document.getElementById("signin-identifier");
+    const signinPass = document.getElementById("signin-password");
+    if (signinId) signinId.value = "";
+    if (signinPass) signinPass.value = "";
 
     showFormAlert("signin-alert-box", "Your account has been deleted.", false);
     showToast("Account deleted successfully.");
@@ -966,58 +1026,62 @@ function initForgotPasswordModal() {
   const btnConfirmPass = document.getElementById("btn-confirm-new-password");
   const step2 = document.getElementById("reset-step-2");
 
-  openLink.addEventListener("click", (e) => {
+  openLink?.addEventListener("click", (e) => {
     e.preventDefault();
     hideFormAlert("forgot-alert-box");
-    step2.style.display = "none";
-    resetInput.value = document.getElementById("signin-identifier").value.trim();
-    modal.classList.add("open");
+    if (step2) step2.style.display = "none";
+    if (resetInput) {
+      resetInput.value = document.getElementById("signin-identifier")?.value.trim() || "";
+    }
+    modal?.classList.add("open");
   });
 
-  closeBtn.addEventListener("click", () => modal.classList.remove("open"));
+  closeBtn?.addEventListener("click", () => modal?.classList.remove("open"));
 
-  tabSms.addEventListener("click", () => {
+  tabSms?.addEventListener("click", () => {
     state.resetMethod = "sms";
     tabSms.classList.add("active");
-    tabEmail.classList.remove("active");
-    targetLabel.textContent = "REGISTERED MOBILE NUMBER";
-    resetInput.placeholder = "09123456789 or +639123456789";
+    tabEmail?.classList.remove("active");
+    if (targetLabel) targetLabel.textContent = "REGISTERED MOBILE NUMBER";
+    if (resetInput) resetInput.placeholder = "09123456789 or +639123456789";
   });
 
-  tabEmail.addEventListener("click", () => {
+  tabEmail?.addEventListener("click", () => {
     state.resetMethod = "email";
     tabEmail.classList.add("active");
-    tabSms.classList.remove("active");
-    targetLabel.textContent = "REGISTERED EMAIL ADDRESS";
-    resetInput.placeholder = "example@gmail.com";
+    tabSms?.classList.remove("active");
+    if (targetLabel) targetLabel.textContent = "REGISTERED EMAIL ADDRESS";
+    if (resetInput) resetInput.placeholder = "example@gmail.com";
   });
 
-  btnSendCode.addEventListener("click", async () => {
+  btnSendCode?.addEventListener("click", async () => {
     hideFormAlert("forgot-alert-box");
-    const targetVal = resetInput.value.trim();
+    if (!resetInput) return;
 
     if (!validateIdentifierInput(resetInput, document.getElementById("reset-id-wrap"), document.getElementById("reset-id-error"))) {
       return;
     }
 
+    const targetVal = resetInput.value.trim();
     const account = findAccountByIdentifier(targetVal);
     if (!account) {
-      document.getElementById("reset-id-wrap").classList.add("input-error");
-      document.getElementById("reset-id-error").textContent = "Invalid email or number";
+      document.getElementById("reset-id-wrap")?.classList.add("input-error");
+      const errEl = document.getElementById("reset-id-error");
+      if (errEl) errEl.textContent = "Invalid email or number";
       return;
     }
 
     state.generatedResetOtp = String(Math.floor(100000 + Math.random() * 900000));
     state.resetTargetAccount = account.identifier;
-    step2.style.display = "block";
+    if (step2) step2.style.display = "block";
 
     const otpMessage = `COPRACURE PASSWORD RESET: Your 6-digit OTP Code is ${state.generatedResetOtp}.`;
     await dispatchDirectSms(targetVal, otpMessage, true, false);
     showFormAlert("forgot-alert-box", `OTP Code sent to ${targetVal}!`, true);
   });
 
-  btnConfirmPass.addEventListener("click", () => {
-    const otpEntered = document.getElementById("reset-otp-input").value.trim();
+  btnConfirmPass?.addEventListener("click", () => {
+    const otpEntered = document.getElementById("reset-otp-input")?.value.trim() || "";
     const newPassEl = document.getElementById("reset-new-password");
 
     if (otpEntered !== state.generatedResetOtp) {
@@ -1033,15 +1097,19 @@ function initForgotPasswordModal() {
     if (!passValid) return;
 
     const accounts = getRegisteredAccounts();
-    const idx = accounts.findIndex((a) => a.identifier.toLowerCase() === state.resetTargetAccount.toLowerCase());
+    const idx = accounts.findIndex(
+      (a) => a && typeof a.identifier === "string" && a.identifier.toLowerCase() === state.resetTargetAccount.toLowerCase()
+    );
     if (idx !== -1) {
       accounts[idx].password = newPassEl.value;
       saveRegisteredAccounts(accounts);
     }
 
-    modal.classList.remove("open");
-    document.getElementById("signin-identifier").value = state.resetTargetAccount;
-    document.getElementById("signin-password").value = "";
+    modal?.classList.remove("open");
+    const signinId = document.getElementById("signin-identifier");
+    const signinPass = document.getElementById("signin-password");
+    if (signinId) signinId.value = state.resetTargetAccount;
+    if (signinPass) signinPass.value = "";
     showFormAlert("signin-alert-box", "AccountUpdated! Password reset successful. Please Sign In.", true);
   });
 }
@@ -1065,14 +1133,20 @@ function initPasswordVisibility() {
    ========================================================================== */
 function showLiveSmsBanner(recipient, messageText, isUrgent = false) {
   const banner = document.getElementById("live-sms-banner");
+  if (!banner) return;
+
   const senderTitle = isUrgent
     ? "COPRACURE URGENT CHAMBER ALERT • SMS SENT"
     : "COPRACURE IMPORTANT SMS • SENT";
 
   banner.classList.toggle("urgent-banner", isUrgent);
-  document.getElementById("sms-banner-sender").textContent = senderTitle;
-  document.getElementById("sms-banner-recipient").textContent = `To: ${recipient}`;
-  document.getElementById("sms-banner-text").textContent = messageText;
+  const senderEl = document.getElementById("sms-banner-sender");
+  const recEl = document.getElementById("sms-banner-recipient");
+  const txtEl = document.getElementById("sms-banner-text");
+
+  if (senderEl) senderEl.textContent = senderTitle;
+  if (recEl) recEl.textContent = `To: ${recipient}`;
+  if (txtEl) txtEl.textContent = messageText;
 
   banner.classList.add("show");
   setTimeout(() => {
@@ -1168,50 +1242,52 @@ function initSmsAlertSystem() {
 
   function openModal() {
     renderPhoneSmsInbox();
-    smsModal.classList.add("open");
+    smsModal?.classList.add("open");
   }
 
-  btnOpenBar.addEventListener("click", openModal);
-  btnOpenSide.addEventListener("click", openModal);
-  btnClose.addEventListener("click", () => smsModal.classList.remove("open"));
+  btnOpenBar?.addEventListener("click", openModal);
+  btnOpenSide?.addEventListener("click", openModal);
+  btnClose?.addEventListener("click", () => smsModal?.classList.remove("open"));
 
-  btnSave.addEventListener("click", () => {
-    const recipientVal = smsInput.value.trim();
+  btnSave?.addEventListener("click", () => {
+    if (!smsInput) return;
     if (!validateIdentifierInput(smsInput, document.getElementById("sms-input-wrap"), document.getElementById("sms-input-error"))) {
       return;
     }
 
+    const recipientVal = smsInput.value.trim();
     if (gatewayUrlInput) localStorage.setItem("copracure_sms_gateway_url", gatewayUrlInput.value.trim());
     if (apiKeyInput) localStorage.setItem("copracure_sms_api_key", apiKeyInput.value.trim());
 
     state.smsRecipientNumber = recipientVal;
-    document.getElementById("sms-active-number").textContent = recipientVal;
+    const activeNumEl = document.getElementById("sms-active-number");
+    if (activeNumEl) activeNumEl.textContent = recipientVal;
     showToast("SMS Gateway settings saved.");
-    smsModal.classList.remove("open");
+    smsModal?.classList.remove("open");
   });
 
-  btnSendNow.addEventListener("click", () => {
+  btnSendNow?.addEventListener("click", () => {
     const urgentMsg = `High Temperature! Chamber ${state.sessionId} reached ${state.temperature.toFixed(1)}°C (Mold: ${state.moldCategory}). Check chamber immediately!`;
     triggerLcdRedAlert("ALRT:CHAMBER CHK", urgentMsg);
     addNotification(urgentMsg, true, true, urgentMsg);
   });
 
-  btnWifiToggle.addEventListener("click", () => {
+  btnWifiToggle?.addEventListener("click", () => {
     state.wifiOnline = !state.wifiOnline;
     const dot = document.getElementById("wifi-pulse-dot");
     const txt = document.getElementById("wifi-status-text");
 
     if (!state.wifiOnline) {
-      dot.classList.add("offline");
-      txt.textContent = "Wi-Fi OFFLINE • GSM Auto-SMS Active";
+      dot?.classList.add("offline");
+      if (txt) txt.textContent = "Wi-Fi OFFLINE • GSM Auto-SMS Active";
       addNotification(
         `Wi-Fi connection lost on ${state.sessionId}. Offline GSM SIM800L standby active.`,
         true,
         false
       );
     } else {
-      dot.classList.remove("offline");
-      txt.textContent = "Wi-Fi Online • Critical SMS Ready";
+      dot?.classList.remove("offline");
+      if (txt) txt.textContent = "Wi-Fi Online • Critical SMS Ready";
       addNotification(`Wi-Fi connection restored for ${state.sessionId}.`, false, false);
     }
   });
@@ -1255,13 +1331,13 @@ function initDryingSessionsModule() {
   btnPauseResume.addEventListener("click", () => {
     state.sessionActive = !state.sessionActive;
     if (state.sessionActive) {
-      badge.innerHTML = `<span class="pulse-dot"></span> ACTIVE SESSION: <strong>${state.sessionId}</strong>`;
-      stageText.textContent = "Stage 2: Falling-Rate Drying";
+      if (badge) badge.innerHTML = `<span class="pulse-dot"></span> ACTIVE SESSION: <strong>${state.sessionId}</strong>`;
+      if (stageText) stageText.textContent = "Stage 2: Falling-Rate Drying";
       btnPauseResume.innerHTML = `<i data-lucide="pause"></i> <span>Pause Session</span>`;
       addNotification(`Drying Session ${state.sessionId} RESUMED.`, false, false);
     } else {
-      badge.innerHTML = `<span class="pulse-dot offline"></span> STANDBY / PAUSED: <strong>${state.sessionId}</strong>`;
-      stageText.textContent = "Standby Mode";
+      if (badge) badge.innerHTML = `<span class="pulse-dot offline"></span> STANDBY / PAUSED: <strong>${state.sessionId}</strong>`;
+      if (stageText) stageText.textContent = "Standby Mode";
       btnPauseResume.innerHTML = `<i data-lucide="play"></i> <span>Resume Session</span>`;
       addNotification(`Drying Session ${state.sessionId} PAUSED.`, false, false);
     }
@@ -1277,10 +1353,15 @@ function updateDryingSessionProgressUI() {
   const droppedSoFar = Math.max(0, mi - mc);
   const pct = Math.min(100, Math.max(0, (droppedSoFar / totalToDrop) * 100));
 
-  document.getElementById("sess-mc").textContent = `${mc.toFixed(1)}%`;
-  document.getElementById("sess-reduction-pct").textContent = `${pct.toFixed(1)}% Complete`;
-  document.getElementById("trajectory-mid-label").textContent = `Current Moisture: ${mc.toFixed(1)}% WB (${pct.toFixed(1)}% toward Safe Copra Threshold)`;
-  document.getElementById("session-main-progress-bar").style.width = `${pct.toFixed(1)}%`;
+  const sessMc = document.getElementById("sess-mc");
+  const sessRed = document.getElementById("sess-reduction-pct");
+  const trajMid = document.getElementById("trajectory-mid-label");
+  const progBar = document.getElementById("session-main-progress-bar");
+
+  if (sessMc) sessMc.textContent = `${mc.toFixed(1)}%`;
+  if (sessRed) sessRed.textContent = `${pct.toFixed(1)}% Complete`;
+  if (trajMid) trajMid.textContent = `Current Moisture: ${mc.toFixed(1)}% WB (${pct.toFixed(1)}% toward Safe Copra Threshold)`;
+  if (progBar) progBar.style.width = `${pct.toFixed(1)}%`;
 }
 
 /* ==========================================================================
@@ -1296,6 +1377,7 @@ function setMoldClassificationState(level) {
   const pillIso = document.getElementById("pill-mold-isolation");
   const cvText = document.getElementById("cv-class-text");
   const camNote = document.getElementById("cam-surface-note");
+  const selectCvMold = document.getElementById("select-cv-mold");
 
   document.querySelectorAll(".mold-state-btn").forEach((btn) => {
     const bState = btn.getAttribute("data-mold-state");
@@ -1306,46 +1388,58 @@ function setMoldClassificationState(level) {
   });
 
   if (level === "HIGH") {
-    riskText.textContent = "HIGH RISK (ISOLATION REQUIRED)";
-    riskText.style.color = "#dc2626";
-    riskDot.className = "status-dot red";
-    pillOpt.className = "proto-pill";
-    pill48.className = "proto-pill active-red";
-    pillIso.className = "proto-pill active-red";
-    cvText.textContent = "HIGH (ISOLATION)";
-    cvText.style.color = "#dc2626";
-    camNote.textContent = "Visible Mold Classification: HIGH — Critical Contamination Detected!";
-    document.getElementById("select-cv-mold").value = "HIGH";
+    if (riskText) {
+      riskText.textContent = "HIGH RISK (ISOLATION REQUIRED)";
+      riskText.style.color = "#dc2626";
+    }
+    if (riskDot) riskDot.className = "status-dot red";
+    if (pillOpt) pillOpt.className = "proto-pill";
+    if (pill48) pill48.className = "proto-pill active-red";
+    if (pillIso) pillIso.className = "proto-pill active-red";
+    if (cvText) {
+      cvText.textContent = "HIGH (ISOLATION)";
+      cvText.style.color = "#dc2626";
+    }
+    if (camNote) camNote.textContent = "Visible Mold Classification: HIGH — Critical Contamination Detected!";
+    if (selectCvMold) selectCvMold.value = "HIGH";
 
     const moldSms = `Mold Detected in Chamber! HIGH mold contamination detected on ${state.sessionId}. Immediate sample isolation required!`;
     triggerLcdRedAlert("ALRT:HIGH MOLD!", moldSms);
     addNotification(moldSms, true, true, moldSms);
   } else if (level === "LOW") {
-    riskText.textContent = "MODERATE RISK (LOW MOLD WARNING)";
-    riskText.style.color = "#d97706";
-    riskDot.className = "status-dot amber";
-    pillOpt.className = "proto-pill";
-    pill48.className = "proto-pill active-amber";
-    pillIso.className = "proto-pill";
-    cvText.textContent = "LOW (EARLY WARNING)";
-    cvText.style.color = "#d97706";
-    camNote.textContent = "Visible Mold Classification: LOW — Increasing airflow & thermal check.";
-    document.getElementById("select-cv-mold").value = "LOW";
+    if (riskText) {
+      riskText.textContent = "MODERATE RISK (LOW MOLD WARNING)";
+      riskText.style.color = "#d97706";
+    }
+    if (riskDot) riskDot.className = "status-dot amber";
+    if (pillOpt) pillOpt.className = "proto-pill";
+    if (pill48) pill48.className = "proto-pill active-amber";
+    if (pillIso) pillIso.className = "proto-pill";
+    if (cvText) {
+      cvText.textContent = "LOW (EARLY WARNING)";
+      cvText.style.color = "#d97706";
+    }
+    if (camNote) camNote.textContent = "Visible Mold Classification: LOW — Increasing airflow & thermal check.";
+    if (selectCvMold) selectCvMold.value = "LOW";
 
     const lowMoldSms = `Mold Warning in Chamber! Early spore (LOW mold) detected on ${state.sessionId}. Increasing chamber ventilation.`;
     triggerLcdRedAlert("ALRT:LOW MOLD!", lowMoldSms);
     addNotification(lowMoldSms, true, true, lowMoldSms);
   } else {
-    riskText.textContent = "LOW RISK (OPTIMAL)";
-    riskText.style.color = "#16a34a";
-    riskDot.className = "status-dot green";
-    pillOpt.className = "proto-pill active-green";
-    pill48.className = "proto-pill";
-    pillIso.className = "proto-pill";
-    cvText.textContent = "NONE (0%)";
-    cvText.style.color = "#15803d";
-    camNote.textContent = "Visible Mold Classification: NONE (Healthy Kernel Surface)";
-    document.getElementById("select-cv-mold").value = "NONE";
+    if (riskText) {
+      riskText.textContent = "LOW RISK (OPTIMAL)";
+      riskText.style.color = "#16a34a";
+    }
+    if (riskDot) riskDot.className = "status-dot green";
+    if (pillOpt) pillOpt.className = "proto-pill active-green";
+    if (pill48) pill48.className = "proto-pill";
+    if (pillIso) pillIso.className = "proto-pill";
+    if (cvText) {
+      cvText.textContent = "NONE (0%)";
+      cvText.style.color = "#15803d";
+    }
+    if (camNote) camNote.textContent = "Visible Mold Classification: NONE (Healthy Kernel Surface)";
+    if (selectCvMold) selectCvMold.value = "NONE";
 
     clearLcdRedAlert();
     addNotification(
@@ -1372,27 +1466,26 @@ function initCameraSsrAndActuators() {
   const ssrStateText = document.getElementById("ssr-state-text");
   const flameIcon = document.getElementById("heater-flame-icon");
 
-  btnSsr.addEventListener("click", () => {
+  btnSsr?.addEventListener("click", () => {
     state.ssrEngaged = !state.ssrEngaged;
 
     if (state.ssrEngaged) {
       btnSsr.textContent = "ENGAGED";
       btnSsr.classList.remove("disengaged");
       btnSsr.classList.add("engaged");
-      wattageEl.textContent = "600 W";
-      ssrStateText.textContent = "SSR State: ON (Closed-Loop Active)";
+      if (wattageEl) wattageEl.textContent = "600 W";
+      if (ssrStateText) ssrStateText.textContent = "SSR State: ON (Closed-Loop Active)";
       if (flameIcon) flameIcon.classList.add("flame-active");
     } else {
       btnSsr.textContent = "DISENGAGED";
       btnSsr.classList.remove("engaged");
       btnSsr.classList.add("disengaged");
-      wattageEl.textContent = "0 W";
-      ssrStateText.textContent = "SSR State: OFF (Manual Standby)";
+      if (wattageEl) wattageEl.textContent = "0 W";
+      if (ssrStateText) ssrStateText.textContent = "SSR State: OFF (Manual Standby)";
       if (flameIcon) flameIcon.classList.remove("flame-active");
     }
 
     update16x2LcdText();
-    // Hindi nagpapadala ng SMS sa simpleng pag-toggle ng SSR switch
     addNotification(
       `Control System: 600W PTC Heater SSR Module switched to ${state.ssrEngaged ? "ENGAGED" : "DISENGAGED"}.`,
       false,
@@ -1400,24 +1493,25 @@ function initCameraSsrAndActuators() {
     );
   });
 
-  document.getElementById("btn-refresh-cam").addEventListener("click", () => {
+  document.getElementById("btn-refresh-cam")?.addEventListener("click", () => {
     const now = new Date().toLocaleTimeString();
-    document.getElementById("cam-timestamp").textContent = `${state.sessionId} • ${now}`;
+    const camTs = document.getElementById("cam-timestamp");
+    if (camTs) camTs.textContent = `${state.sessionId} • ${now}`;
     showToast("ESP32-CAM captured a new overhead frame.");
   });
 
   const viewport = document.getElementById("camera-viewport");
-  document.getElementById("btn-cam-flash").addEventListener("click", () => {
+  document.getElementById("btn-cam-flash")?.addEventListener("click", () => {
     state.camFlash = !state.camFlash;
-    viewport.classList.toggle("flash-active", state.camFlash);
+    viewport?.classList.toggle("flash-active", state.camFlash);
     showToast(`ESP32-CAM Flash: ${state.camFlash ? "ON" : "OFF"}`);
   });
 
   const btnMode = document.getElementById("btn-toggle-control-mode");
   const modeText = document.getElementById("control-mode-text");
-  btnMode.addEventListener("click", () => {
+  btnMode?.addEventListener("click", () => {
     state.autoMode = !state.autoMode;
-    modeText.textContent = state.autoMode ? "AUTO ENGAGED" : "MANUAL OVERRIDE";
+    if (modeText) modeText.textContent = state.autoMode ? "AUTO ENGAGED" : "MANUAL OVERRIDE";
     update16x2LcdText();
     addNotification(
       `Control System switched to ${state.autoMode ? "AUTOMATED Mode" : "MANUAL Override Mode"}.`,
@@ -1439,7 +1533,7 @@ function initCameraSsrAndActuators() {
 
       if (state.autoMode) {
         state.autoMode = false;
-        modeText.textContent = "MANUAL OVERRIDE";
+        if (modeText) modeText.textContent = "MANUAL OVERRIDE";
       }
 
       addNotification(`Control System: ${eq} turned ${isOn ? "ON" : "OFF"}.`, false, false);
@@ -1448,8 +1542,8 @@ function initCameraSsrAndActuators() {
 
   const slider = document.getElementById("led-brightness-slider");
   const val = document.getElementById("led-brightness-val");
-  slider.addEventListener("input", (e) => {
-    val.textContent = `${e.target.value}%`;
+  slider?.addEventListener("input", (e) => {
+    if (val) val.textContent = `${e.target.value}%`;
   });
 }
 
@@ -1465,10 +1559,16 @@ function initPreventiveAlertModule() {
   if (btnSimHighTemp) {
     btnSimHighTemp.addEventListener("click", () => {
       state.temperature = 64.8;
-      document.getElementById("val-temperature").textContent = state.temperature.toFixed(1);
-      document.getElementById("risk-text").textContent = "HIGH TEMPERATURE ALERT (>60°C)";
-      document.getElementById("risk-text").style.color = "#dc2626";
-      document.getElementById("risk-dot").className = "status-dot red";
+      const tempEl = document.getElementById("val-temperature");
+      const riskText = document.getElementById("risk-text");
+      const riskDot = document.getElementById("risk-dot");
+
+      if (tempEl) tempEl.textContent = state.temperature.toFixed(1);
+      if (riskText) {
+        riskText.textContent = "HIGH TEMPERATURE ALERT (>60°C)";
+        riskText.style.color = "#dc2626";
+      }
+      if (riskDot) riskDot.className = "status-dot red";
 
       const highTempSms = `High Temperature! Chamber ${state.sessionId} reached ${state.temperature.toFixed(1)}°C (exceeding 60°C cutoff). KSD301 & Exhaust Fans triggered!`;
       triggerLcdRedAlert("ALRT:HIGH TEMP!", highTempSms);
@@ -1476,17 +1576,24 @@ function initPreventiveAlertModule() {
     });
   }
 
-  btnSimMold.addEventListener("click", () => {
+  btnSimMold?.addEventListener("click", () => {
     setMoldClassificationState("HIGH");
   });
 
   if (btnSimRate) {
     btnSimRate.addEventListener("click", () => {
-      document.getElementById("pill-optimal").className = "proto-pill";
-      document.getElementById("pill-48h-warning").className = "proto-pill active-amber";
-      document.getElementById("risk-text").textContent = "48H DRYING RATE WARNING";
-      document.getElementById("risk-text").style.color = "#d97706";
-      document.getElementById("risk-dot").className = "status-dot amber";
+      const pillOpt = document.getElementById("pill-optimal");
+      const pill48 = document.getElementById("pill-48h-warning");
+      const riskText = document.getElementById("risk-text");
+      const riskDot = document.getElementById("risk-dot");
+
+      if (pillOpt) pillOpt.className = "proto-pill";
+      if (pill48) pill48.className = "proto-pill active-amber";
+      if (riskText) {
+        riskText.textContent = "48H DRYING RATE WARNING";
+        riskText.style.color = "#d97706";
+      }
+      if (riskDot) riskDot.className = "status-dot amber";
 
       const rateWarnSms = `48H Drying Rate Warning! Moisture reduction on ${state.sessionId} is slower than target trajectory. Check heater and airflow.`;
       triggerLcdRedAlert("ALRT:SLOW DRYING", rateWarnSms);
@@ -1494,9 +1601,10 @@ function initPreventiveAlertModule() {
     });
   }
 
-  btnReset.addEventListener("click", () => {
+  btnReset?.addEventListener("click", () => {
     state.temperature = 56.1;
-    document.getElementById("val-temperature").textContent = state.temperature.toFixed(1);
+    const tempEl = document.getElementById("val-temperature");
+    if (tempEl) tempEl.textContent = state.temperature.toFixed(1);
     clearLcdRedAlert();
     setMoldClassificationState("NONE");
     showToast("Chamber alerts reset to optimal state.");
@@ -1515,7 +1623,6 @@ function initSensorCalibrationModule() {
   const btnZeroProbe = document.getElementById("btn-zero-probe");
   const btnSimDrift = document.getElementById("btn-sim-drift");
 
-  // Admin / Developer Lock Controls
   const btnAdminToggle = document.getElementById("btn-admin-cal-toggle");
   const adminModal = document.getElementById("admin-cal-modal");
   const closeAdminModal = document.getElementById("close-admin-cal-modal");
@@ -1525,32 +1632,34 @@ function initSensorCalibrationModule() {
   renderCalibrationHistoryTable();
   computeAndRenderCalibrationMetrics(false);
 
-  btnAdminToggle.addEventListener("click", () => {
+  btnAdminToggle?.addEventListener("click", () => {
     if (state.adminCalibrationUnlocked) {
-      // Lock it back
       setAdminCalibrationAccess(false);
       showToast("Admin / Developer Calibration Mode locked.");
     } else {
       hideFormAlert("admin-cal-alert-box");
-      adminPassInput.value = "";
-      document.getElementById("admin-pass-error").textContent = "";
-      adminModal.classList.add("open");
+      if (adminPassInput) adminPassInput.value = "";
+      const errEl = document.getElementById("admin-pass-error");
+      if (errEl) errEl.textContent = "";
+      adminModal?.classList.add("open");
     }
   });
 
-  closeAdminModal.addEventListener("click", () => adminModal.classList.remove("open"));
+  closeAdminModal?.addEventListener("click", () => adminModal?.classList.remove("open"));
 
-  btnVerifyAdmin.addEventListener("click", () => {
-    const pass = adminPassInput.value.trim();
+  btnVerifyAdmin?.addEventListener("click", () => {
+    const pass = adminPassInput ? adminPassInput.value.trim() : "";
     if (pass !== ADMIN_DEVELOPER_PASSCODE) {
-      document.getElementById("admin-pass-wrap").classList.add("input-error");
-      document.getElementById("admin-pass-error").textContent = "The password you enter is incorrect";
+      document.getElementById("admin-pass-wrap")?.classList.add("input-error");
+      const errEl = document.getElementById("admin-pass-error");
+      if (errEl) errEl.textContent = "The password you enter is incorrect";
       return;
     }
 
-    document.getElementById("admin-pass-wrap").classList.remove("input-error");
-    document.getElementById("admin-pass-error").textContent = "";
-    adminModal.classList.remove("open");
+    document.getElementById("admin-pass-wrap")?.classList.remove("input-error");
+    const errEl = document.getElementById("admin-pass-error");
+    if (errEl) errEl.textContent = "";
+    adminModal?.classList.remove("open");
     setAdminCalibrationAccess(true);
     showToast("Admin / Developer Calibration Access unlocked!");
   });
@@ -1564,34 +1673,33 @@ function initSensorCalibrationModule() {
     }
   });
 
-  // Trigger Button 1: Run Calibration Check (Admin/Developer Only)
-  btnRunCal.addEventListener("click", () => {
+  btnRunCal?.addEventListener("click", () => {
     if (!state.adminCalibrationUnlocked) return;
 
     const progBox = document.getElementById("cal-progress-box");
     const progBar = document.getElementById("cal-progress-bar");
     const progText = document.getElementById("cal-progress-text");
 
-    progBox.style.display = "block";
-    progBar.style.width = "30%";
-    progText.textContent = "Step 1/3: Sampling SHT31 Temperature & Humidity I2C registers...";
+    if (progBox) progBox.style.display = "block";
+    if (progBar) progBar.style.width = "30%";
+    if (progText) progText.textContent = "Step 1/3: Sampling SHT31 Temperature & Humidity I2C registers...";
 
     setTimeout(() => {
-      progBar.style.width = "70%";
-      progText.textContent = "Step 2/3: Comparing Experimental Moisture Probe ADC vs Reference Values...";
+      if (progBar) progBar.style.width = "70%";
+      if (progText) progText.textContent = "Step 2/3: Comparing Experimental Moisture Probe ADC vs Reference Values...";
     }, 500);
 
     setTimeout(() => {
-      progBar.style.width = "100%";
-      progText.textContent = "Step 3/3: Applying ESP32 offset factors and verifying MAE thresholds...";
+      if (progBar) progBar.style.width = "100%";
+      if (progText) progText.textContent = "Step 3/3: Applying ESP32 offset factors and verifying MAE thresholds...";
 
       state.refTemperature = +(state.temperature - 0.1).toFixed(1);
       state.refHumidity = +(state.humidity - 0.3).toFixed(1);
       state.refMoisture = +(state.moisture - 0.2).toFixed(1);
 
-      refTempInput.value = state.refTemperature;
-      refRhInput.value = state.refHumidity;
-      refMcInput.value = state.refMoisture;
+      if (refTempInput) refTempInput.value = state.refTemperature;
+      if (refRhInput) refRhInput.value = state.refHumidity;
+      if (refMcInput) refMcInput.value = state.refMoisture;
 
       const metrics = computeAndRenderCalibrationMetrics(false);
       clearLcdRedAlert();
@@ -1614,19 +1722,19 @@ function initSensorCalibrationModule() {
       );
 
       setTimeout(() => {
-        progBox.style.display = "none";
-        progBar.style.width = "0%";
+        if (progBox) progBox.style.display = "none";
+        if (progBar) progBar.style.width = "0%";
       }, 1000);
     }, 1100);
   });
 
-  // Trigger Button 2: Zero / Reset Moisture Probe (Admin/Developer Only)
-  btnZeroProbe.addEventListener("click", () => {
+  btnZeroProbe?.addEventListener("click", () => {
     if (!state.adminCalibrationUnlocked) return;
 
     state.refMoisture = state.moisture;
-    refMcInput.value = state.moisture.toFixed(1);
-    document.getElementById("mc-offset-code").textContent = "mc_offset = 0.00 (ZEROED)";
+    if (refMcInput) refMcInput.value = state.moisture.toFixed(1);
+    const offsetCode = document.getElementById("mc-offset-code");
+    if (offsetCode) offsetCode.textContent = "mc_offset = 0.00 (ZEROED)";
     computeAndRenderCalibrationMetrics(false);
 
     const now = new Date();
@@ -1642,13 +1750,12 @@ function initSensorCalibrationModule() {
     showToast("Moisture Probe zeroed by Admin/Developer.");
   });
 
-  // Trigger Button 3: Simulate Sensor Drift (Triggers Important SMS + Red LCD Alert)
-  btnSimDrift.addEventListener("click", () => {
+  btnSimDrift?.addEventListener("click", () => {
     if (!state.adminCalibrationUnlocked) return;
 
-    refTempInput.value = (state.temperature - 1.4).toFixed(1);
-    refRhInput.value = (state.humidity - 3.2).toFixed(1);
-    refMcInput.value = (state.moisture - 1.8).toFixed(1);
+    if (refTempInput) refTempInput.value = (state.temperature - 1.4).toFixed(1);
+    if (refRhInput) refRhInput.value = (state.humidity - 3.2).toFixed(1);
+    if (refMcInput) refMcInput.value = (state.moisture - 1.8).toFixed(1);
     computeAndRenderCalibrationMetrics(true);
   });
 }
@@ -1664,17 +1771,17 @@ function setAdminCalibrationAccess(unlocked) {
   });
 
   if (unlocked) {
-    btn.classList.remove("locked");
-    btn.classList.add("unlocked");
-    btn.innerHTML = `<i data-lucide="unlock"></i> <span>Admin / Developer Mode: UNLOCKED (Click to Lock)</span>`;
-    banner.classList.add("unlocked");
-    lockMsg.innerHTML = `<strong>Admin / Developer Mode Active:</strong> You can now calibrate the SHT31 and Moisture Probe sensors and adjust the reference values.`;
+    btn?.classList.remove("locked");
+    btn?.classList.add("unlocked");
+    if (btn) btn.innerHTML = `<i data-lucide="unlock"></i> <span>Admin / Developer Mode: UNLOCKED (Click to Lock)</span>`;
+    banner?.classList.add("unlocked");
+    if (lockMsg) lockMsg.innerHTML = `<strong>Admin / Developer Mode Active:</strong> You can now calibrate the SHT31 and Moisture Probe sensors and adjust the reference values.`;
   } else {
-    btn.classList.remove("unlocked");
-    btn.classList.add("locked");
-    btn.innerHTML = `<i data-lucide="lock"></i> <span>Admin / Developer Access (Locked)</span>`;
-    banner.classList.remove("unlocked");
-    lockMsg.innerHTML = `<strong>Restricted Access:</strong> Tanging Admin o Developer lamang ang maaaring mag-calibrate ng sensors at magbago ng reference offsets sa chamber. Pindutin ang <em>Admin / Developer Access</em> (Passcode: <code>admin123</code>) upang buksan.`;
+    btn?.classList.remove("unlocked");
+    btn?.classList.add("locked");
+    if (btn) btn.innerHTML = `<i data-lucide="lock"></i> <span>Admin / Developer Access (Locked)</span>`;
+    banner?.classList.remove("unlocked");
+    if (lockMsg) lockMsg.innerHTML = `<strong>Restricted Access:</strong> Tanging Admin o Developer lamang ang maaaring mag-calibrate ng sensors at magbago ng reference offsets sa chamber. Pindutin ang <em>Admin / Developer Access</em> (Passcode: <code>admin123</code>) upang buksan.`;
   }
 
   if (window.lucide) lucide.createIcons();
@@ -1697,17 +1804,26 @@ function computeAndRenderCalibrationMetrics(notifyOnAnomaly = false) {
   const offsetRh = (refRh - liveRh).toFixed(2);
   const offsetMc = (refMc - liveMc).toFixed(2);
 
-  document.getElementById("cal-live-temp").textContent = liveT.toFixed(1);
-  document.getElementById("cal-live-rh").textContent = liveRh.toFixed(1);
-  document.getElementById("cal-live-mc").textContent = liveMc.toFixed(1);
+  const calLiveT = document.getElementById("cal-live-temp");
+  const calLiveRh = document.getElementById("cal-live-rh");
+  const calLiveMc = document.getElementById("cal-live-mc");
+  if (calLiveT) calLiveT.textContent = liveT.toFixed(1);
+  if (calLiveRh) calLiveRh.textContent = liveRh.toFixed(1);
+  if (calLiveMc) calLiveMc.textContent = liveMc.toFixed(1);
 
-  document.getElementById("cal-err-temp").textContent = `${errT.toFixed(2)} °C`;
-  document.getElementById("cal-err-rh").textContent = `${errRh.toFixed(2)} %`;
-  document.getElementById("cal-err-mc").textContent = `${errMc.toFixed(2)} %`;
+  const calErrT = document.getElementById("cal-err-temp");
+  const calErrRh = document.getElementById("cal-err-rh");
+  const calErrMc = document.getElementById("cal-err-mc");
+  if (calErrT) calErrT.textContent = `${errT.toFixed(2)} °C`;
+  if (calErrRh) calErrRh.textContent = `${errRh.toFixed(2)} %`;
+  if (calErrMc) calErrMc.textContent = `${errMc.toFixed(2)} %`;
 
-  document.getElementById("mae-temp-val").textContent = errT.toFixed(2);
-  document.getElementById("mae-rh-val").textContent = errRh.toFixed(2);
-  document.getElementById("mae-mc-val").textContent = errMc.toFixed(2);
+  const maeT = document.getElementById("mae-temp-val");
+  const maeRh = document.getElementById("mae-rh-val");
+  const maeMc = document.getElementById("mae-mc-val");
+  if (maeT) maeT.textContent = errT.toFixed(2);
+  if (maeRh) maeRh.textContent = errRh.toFixed(2);
+  if (maeMc) maeMc.textContent = errMc.toFixed(2);
 
   const statusT = errT <= 0.5 ? "verified" : errT <= 1.0 ? "needs-cal" : "out-of-range";
   const statusRh = errRh <= 2.0 ? "verified" : errRh <= 3.0 ? "needs-cal" : "out-of-range";
@@ -1722,8 +1838,8 @@ function computeAndRenderCalibrationMetrics(notifyOnAnomaly = false) {
 
   if ([statusT, statusRh, statusMc].includes("out-of-range")) {
     state.calibrationStatus = "Out of Range";
-    globalBadge.className = "cal-status-badge out-of-range";
-    globalText.textContent = "Out of Range";
+    if (globalBadge) globalBadge.className = "cal-status-badge out-of-range";
+    if (globalText) globalText.textContent = "Out of Range";
     if (notifyOnAnomaly) {
       const calSms = `Sensor Calibration Needed! Chamber ${state.sessionId} sensors are OUT OF RANGE (MAE T:${errT.toFixed(2)}°C, RH:${errRh.toFixed(2)}%, MC:${errMc.toFixed(2)}%). Admin/Developer calibration required!`;
       triggerLcdRedAlert("ALRT:CAL NEEDED!", calSms);
@@ -1731,8 +1847,8 @@ function computeAndRenderCalibrationMetrics(notifyOnAnomaly = false) {
     }
   } else if ([statusT, statusRh, statusMc].includes("needs-cal")) {
     state.calibrationStatus = "Needs Calibration";
-    globalBadge.className = "cal-status-badge needs-cal";
-    globalText.textContent = "Needs Calibration";
+    if (globalBadge) globalBadge.className = "cal-status-badge needs-cal";
+    if (globalText) globalText.textContent = "Needs Calibration";
     if (notifyOnAnomaly) {
       const calWarnSms = `Sensor Calibration Needed! One or more sensors in ${state.sessionId} drifted (MAE T:${errT.toFixed(2)}°C, RH:${errRh.toFixed(2)}%, MC:${errMc.toFixed(2)}%).`;
       triggerLcdRedAlert("ALRT:CAL NEEDED!", calWarnSms);
@@ -1740,8 +1856,8 @@ function computeAndRenderCalibrationMetrics(notifyOnAnomaly = false) {
     }
   } else {
     state.calibrationStatus = "Calibrated & Verified";
-    globalBadge.className = "cal-status-badge verified";
-    globalText.textContent = "Calibrated & Verified";
+    if (globalBadge) globalBadge.className = "cal-status-badge verified";
+    if (globalText) globalText.textContent = "Calibrated & Verified";
   }
 
   return {
@@ -1814,17 +1930,14 @@ function initLocal16x2LcdModal() {
 
   function openLcd() {
     update16x2LcdText();
-    modal.classList.add("open");
+    modal?.classList.add("open");
   }
 
-  btnSide.addEventListener("click", openLcd);
-  btnInline.addEventListener("click", openLcd);
-  btnClose.addEventListener("click", () => modal.classList.remove("open"));
+  btnSide?.addEventListener("click", openLcd);
+  btnInline?.addEventListener("click", openLcd);
+  btnClose?.addEventListener("click", () => modal?.classList.remove("open"));
 }
 
-/**
- * Naglalagay ng pulang message alert sa 16x2 I2C LCD
- */
 function triggerLcdRedAlert(shortCode16Char, fullAlertMessage) {
   state.lcdAlertActive = true;
   state.lcdAlertShortCode = shortCode16Char.slice(0, 16);
@@ -1850,10 +1963,13 @@ function update16x2LcdText() {
   const lcdScreen = document.getElementById("lcd-hardware-screen");
   const redAlertBox = document.getElementById("lcd-red-alert-box");
   const redAlertMsg = document.getElementById("lcd-red-alert-msg");
+  const inlineTxt = document.getElementById("lcd-inline-text");
+  const line1 = document.getElementById("lcd-line-1");
+  const line2 = document.getElementById("lcd-line-2");
 
-  document.getElementById("lcd-inline-text").textContent = `${row1} | ${row2.trim()}`;
-  document.getElementById("lcd-line-1").textContent = row1;
-  document.getElementById("lcd-line-2").textContent = row2;
+  if (inlineTxt) inlineTxt.textContent = `${row1} | ${row2.trim()}`;
+  if (line1) line1.textContent = row1;
+  if (line2) line2.textContent = row2;
 
   if (state.lcdAlertActive) {
     inlineBadge?.classList.add("lcd-alert-active");
@@ -1889,14 +2005,17 @@ function initNavigationAndSidebar() {
     });
   });
 
-  document.getElementById("btn-sync-telemetry").addEventListener("click", async () => {
+  document.getElementById("btn-sync-telemetry")?.addEventListener("click", async () => {
     state.temperature = +(55.7 + Math.random() * 0.9).toFixed(1);
     state.humidity = +(36.9 + Math.random() * 1.0).toFixed(1);
     state.moisture = Math.max(6.0, +(state.moisture - 0.2).toFixed(1));
 
-    document.getElementById("val-temperature").textContent = state.temperature.toFixed(1);
-    document.getElementById("val-humidity").textContent = state.humidity.toFixed(1);
-    document.getElementById("val-moisture").textContent = state.moisture.toFixed(1);
+    const tempEl = document.getElementById("val-temperature");
+    const rhEl = document.getElementById("val-humidity");
+    const mcEl = document.getElementById("val-moisture");
+    if (tempEl) tempEl.textContent = state.temperature.toFixed(1);
+    if (rhEl) rhEl.textContent = state.humidity.toFixed(1);
+    if (mcEl) mcEl.textContent = state.moisture.toFixed(1);
 
     update16x2LcdText();
     updateDryingSessionProgressUI();
@@ -1922,26 +2041,26 @@ function initBatchCalculationsAndCsv() {
   const selectAflatoxin = document.getElementById("select-aflatoxin");
 
   function compute() {
-    const mi = parseFloat(inputMi.value) || 0;
-    const mf = parseFloat(inputMf.value) || 0;
+    const mi = parseFloat(inputMi?.value) || 0;
+    const mf = parseFloat(inputMf?.value) || 0;
     if (mi > 0 && mi >= mf) {
-      outputReduction.value = (((mi - mf) / mi) * 100).toFixed(1);
-      outputRate.value = ((mi - mf) / state.plannedDurationHours).toFixed(2);
+      if (outputReduction) outputReduction.value = (((mi - mf) / mi) * 100).toFixed(1);
+      if (outputRate) outputRate.value = ((mi - mf) / state.plannedDurationHours).toFixed(2);
     }
     updateBatchSafetyStatus();
   }
 
-  inputMi.addEventListener("input", compute);
-  inputMf.addEventListener("input", compute);
-  selectMold.addEventListener("change", (e) => {
+  inputMi?.addEventListener("input", compute);
+  inputMf?.addEventListener("input", compute);
+  selectMold?.addEventListener("change", (e) => {
     setMoldClassificationState(e.target.value);
   });
-  selectAflatoxin.addEventListener("change", updateBatchSafetyStatus);
+  selectAflatoxin?.addEventListener("change", updateBatchSafetyStatus);
 
-  document.getElementById("btn-export-csv").addEventListener("click", () => {
+  document.getElementById("btn-export-csv")?.addEventListener("click", () => {
     const csv = [
       "Session_ID,Recipient,Temp_C,RH_Pct,Mi_Pct,Mf_Pct,Reduction_Pct,Rate_Pct_Hr,CV_Mold,Calibration_Status,Aflatoxin_Kit",
-      `${state.sessionId},${state.smsRecipientNumber},${state.temperature},${state.humidity},${inputMi.value},${inputMf.value},${outputReduction.value},${outputRate.value},${selectMold.value},"${state.calibrationStatus}","${selectAflatoxin.value}"`
+      `${state.sessionId},${state.smsRecipientNumber},${state.temperature},${state.humidity},${inputMi?.value || ""},${inputMf?.value || ""},${outputReduction?.value || ""},${outputRate?.value || ""},${selectMold?.value || ""},"${state.calibrationStatus}","${selectAflatoxin?.value || ""}"`
     ].join("\n");
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -1956,11 +2075,13 @@ function initBatchCalculationsAndCsv() {
 }
 
 function updateBatchSafetyStatus() {
-  const mf = parseFloat(document.getElementById("input-mf").value) || 0;
-  const mold = document.getElementById("select-cv-mold").value;
-  const afla = document.getElementById("select-aflatoxin").value;
+  const mf = parseFloat(document.getElementById("input-mf")?.value) || 0;
+  const mold = document.getElementById("select-cv-mold")?.value || "NONE";
+  const afla = document.getElementById("select-aflatoxin")?.value || "Negative";
   const box = document.getElementById("batch-safety-status");
   const txt = document.getElementById("batch-safety-text");
+
+  if (!box || !txt) return;
 
   if (mf <= 6.5 && mold !== "HIGH" && afla.startsWith("Negative")) {
     box.style.color = "#15803d";
@@ -1984,9 +2105,13 @@ function initSupabaseRealtime() {
           state.temperature = Number(r.temperature ?? state.temperature);
           state.humidity = Number(r.humidity ?? state.humidity);
           state.moisture = Number(r.moisture_probe_reading ?? state.moisture);
-          document.getElementById("val-temperature").textContent = state.temperature.toFixed(1);
-          document.getElementById("val-humidity").textContent = state.humidity.toFixed(1);
-          document.getElementById("val-moisture").textContent = state.moisture.toFixed(1);
+
+          const tempEl = document.getElementById("val-temperature");
+          const rhEl = document.getElementById("val-humidity");
+          const mcEl = document.getElementById("val-moisture");
+          if (tempEl) tempEl.textContent = state.temperature.toFixed(1);
+          if (rhEl) rhEl.textContent = state.humidity.toFixed(1);
+          if (mcEl) mcEl.textContent = state.moisture.toFixed(1);
 
           if (state.temperature > 60.0) {
             const highTempMsg = `High Temperature! Chamber reached ${state.temperature.toFixed(1)}°C!`;
@@ -2008,10 +2133,10 @@ async function insertSupabaseRecord(tableName, data) {
     console.error(`Supabase is offline. Cannot save data to ${tableName}.`);
     return;
   }
-  
+
   try {
     const { error } = await supabaseClient.from(tableName).insert([data]);
-    
+
     if (error) {
       console.error(`❌ Supabase Insert Error (${tableName}):`, error.message, error.details || "");
     } else {
@@ -2024,6 +2149,7 @@ async function insertSupabaseRecord(tableName, data) {
 
 function showToast(message) {
   const container = document.getElementById("toast-container");
+  if (!container) return;
   const toast = document.createElement("div");
   toast.className = "toast";
   toast.textContent = message;
