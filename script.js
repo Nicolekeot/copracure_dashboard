@@ -843,34 +843,32 @@ function initAuthViews() {
     }
     
     hasError = true;
-
+    
     // 2. Check Password
-if (!existingAccount) {
-  // Walang account: huwag magpatuloy sa password validation
-  hasError = true;
-} else if (!password) {
-  signinPassWrap?.classList.add("input-error");
+    if (!existingAccount) {
+      hasError = true;
+    } else if (!password) {
+      signinPassWrap?.classList.add("input-error");
+      if (signinPassErr) {
+        signinPassErr.textContent = "Please enter your password";
+      }
+      hasError = true;
+    } else if (password !== existingAccount.password) {
+      signinPassWrap?.classList.add("input-error");
+      if (signinPassErr) {
+        signinPassErr.textContent = "The password you enter is incorrect";
+      }
+      hasError = true;
+    } else {
+      signinPassWrap?.classList.remove("input-error");
+      if (signinPassErr) {
+        signinPassErr.textContent = "";
+      }
+    }
 
-  if (signinPassErr) {
-    signinPassErr.textContent = "Please enter your password";
-  }
+    // STOP kapag may error
+    if (hasError) return;
 
-  hasError = true;
-} else if (password !== existingAccount.password) {
-  signinPassWrap?.classList.add("input-error");
-
-  if (signinPassErr) {
-    signinPassErr.textContent = "The password you enter is incorrect";
-  }
-
-  hasError = true;
-} else {
-  signinPassWrap?.classList.remove("input-error");
-
-  if (signinPassErr) {
-    signinPassErr.textContent = "";
-  }
-}
 
     // I-save ang active session para manatili sa Dashboard kahit i-refresh ang browser
     localStorage.setItem(
