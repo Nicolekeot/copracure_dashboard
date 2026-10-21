@@ -838,20 +838,12 @@ function initAuthViews() {
 
     if (!idValid) {
       signinIdWrap?.classList.add("input-error");
-      if (signinIdErr) signinIdErr.textContent = "Invalid email or number";
-      showFormAlert("signin-alert-box", "Invalid email or number", false);
-      hasError = true;
-    } else if (!existingAccount) {
-      signinIdWrap?.classList.add("input-error");
-      const msg = "Account does not exist! Please sign up to access the dashboard.";
-      if (signinIdErr) signinIdErr.textContent = msg;
-      showFormAlert("signin-alert-box", msg, false);
-      hasError = true;
-    } else {
-      signinIdWrap?.classList.remove("input-error");
-      if (signinIdErr) signinIdErr.textContent = "";
-    }
 
+      if (signinIdErr) signinIdErr.textContent = "Invalid email or number";
+    }
+    
+    hasError = true;
+    
     // 2. Check Password
     if (existingAccount && !password) {
       signinPassWrap?.classList.add("input-error");
