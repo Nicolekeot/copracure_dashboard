@@ -832,7 +832,6 @@ function initAuthViews() {
     if (existingAccount && !password) {
       signinPassWrap?.classList.add("input-error");
       if (signinPassErr) signinPassErr.textContent = "Please enter your password";
-      showFormAlert("signin-alert-box", "Please enter your password", false);
       hasError = true;
     } else if (existingAccount && password !== existingAccount.password) {
       signinPassWrap?.classList.add("input-error");
@@ -842,19 +841,11 @@ function initAuthViews() {
     } else if (existingAccount && password !== existingAccount.password) {
       signinPassWrap?.classList.add("input-error");
       if (signinPassErr) signinPassErr.textContent = "The password you enter is incorrect";
-      
-      // IWASAN ANG DOBLENG ALERT: I-clear o huwag na tawagin ang showFormAlert dito 
-      // para sa ibaba lamang ng password field lumabas ang error message.
-      hideFormAlert("signin-alert-box"); 
-      
       hasError = true;
-    } else {
+      } else {
       signinPassWrap?.classList.remove("input-error");
       if (signinPassErr) signinPassErr.textContent = "";
     }
-
-    if (hasError) return;
-
     // I-save ang active session para manatili sa Dashboard kahit i-refresh ang browser
     localStorage.setItem(
       "copracure_active_session",
