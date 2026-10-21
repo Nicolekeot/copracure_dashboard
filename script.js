@@ -249,6 +249,31 @@ document.addEventListener("DOMContentLoaded", () => {
   document.getElementById("close-sms-banner").addEventListener("click", () => {
     document.getElementById("live-sms-banner").classList.remove("show");
   });
+  function checkActiveSession() {
+  try {
+    const sessionRaw = localStorage.getItem("copracure_active_session");
+    if (!sessionRaw) return;
+
+    const session = JSON.parse(sessionRaw);
+    const account = findAccountByIdentifier(session.identifier);
+
+    if (account) {
+      state.currentUserFullName = account.fullName;
+      state.currentUser = account.fullName.split(" ")[0];
+      state.currentUserIdentifier = account.identifier;
+      state.smsRecipientNumber = account.identifier;
+
+      // Alisin ang active view sa signin at ilipat sa dashboard
+      document.getElementById("signin-view")?.classList.remove("active-view");
+      document.getElementById("signup-view")?.classList.remove("active-view");
+      document.getElementById("dashboard-view")?.classList.add("active-view");
+
+      updateDashboardWelcomeBanner();
+    }
+  } catch (e) {
+    console.error("Session check failed:", e);
+  }
+}
 });
 
 /* ==========================================================================
@@ -740,6 +765,12 @@ function initAuthViews() {
 
     let hasError = false;
 
+    // Idagdag ito bago o matapos lumipat ng view sa signin-form
+    localStorage.setItem("copracure_active_session", JSON.stringify({
+      identifier: existingAccount.identifier,
+      fullName: existingAccount.fullName
+    }));
+
     // 1. Check Identifier (Email or Number) at Account Existence
     const idValid = validateIdentifierInput(idEl, document.getElementById("signin-id-wrap"), document.getElementById("signin-id-error"));
     const existingAccount = findAccountByIdentifier(identifier);
@@ -807,12 +838,12 @@ function initAuthViews() {
 
   // LOG OUT
   document.getElementById("btn-logout").addEventListener("click", () => {
+   localStorage.removeItem("copracure_active_session"); // <-- Idagdag ito
     dashboardView.classList.remove("active-view");
     signinView.classList.add("active-view");
     document.getElementById("signin-password").value = "";
     showToast("Signed out successfully.");
-  });
-}
+});
 
 /* ==========================================================================
    5. USER PROFILE MODAL (UPDATE ACCOUNT -> SENDS "AccountUpdated!" SMS)
@@ -1990,3 +2021,4 @@ function showToast(message) {
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3500);
 }
+};
