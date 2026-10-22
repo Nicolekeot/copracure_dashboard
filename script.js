@@ -1601,6 +1601,7 @@ function setMoldClassificationState(level) {
 }
 
 function initCameraSsrAndActuators() {
+  // 1. Mold Classification Buttons
   document.querySelectorAll(".mold-state-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
       const targetState = btn.getAttribute("data-mold-state");
@@ -1608,6 +1609,78 @@ function initCameraSsrAndActuators() {
     });
   });
 
+  // 2. Actuator Toggles (Fans & LED)
+  document.querySelectorAll(".actuator-toggle").forEach((toggle) => {
+    toggle.addEventListener("change", async (e) => {
+      const eq = e.target.getAttribute("data-equipment");
+      const iconBoxId = e.target.getAttribute("data-icon-box");
+      const isOn = e.target.checked;
+
+      if (iconBoxId) {
+        const boxEl = document.getElementById(iconBoxId);
+        if (boxEl) boxEl.classList.toggle("spin-active", isOn);
+      }
+
+      if (state.autoMode) {
+        state.autoMode = false;
+        const modeText = document.getElementById("control-mode-text");
+        if (modeText) modeText.textContent = "MANUAL OVERRIDE";
+      }
+
+      addNotification(`Control System: ${eq} turned ${isOn ? "ON" : "OFF"}.`, false, false);
+
+      // Supabase Telemetry Update
+      if (supabaseClient) {
+        let column = "";
+        if (eq === "12V Centrifugal Blower") column = "blower";
+        else if (eq === "Exhaust Fan A") column = "exhaust_a";
+        else if (eq === "Exhaust Fan B") column = "exhaust_b";
+        else if (eq === "LED Strip (Chamber)") column = "led";
+
+        if (column !== "") {
+          const updateData = {};
+          updateData[column] = isOn;
+          
+          await supabaseClient.from("device_states").update(updateData).eq("id", 1);
+          
+          insertSupabaseRecord("control_events", {
+            session_id: state.sessionId,
+            equipment_name: eq,
+            event_reason: isOn ? "Turned ON" : "Turned OFF"
+          });
+        }
+      }
+    });
+  });
+
+  // 3. LED Brightness Slider UI at Telemetry
+  const slider = document.getElementById("led-brightness-slider");
+  const val = document.getElementById("led-brightness-val");
+  
+  // Nag-u-update ng text habang hinihila
+  slider?.addEventListener("input", (e) => {
+    if (val) {
+      val.textContent = `${e.target.value}%`;
+    }
+  });
+
+  // Nagse-send sa Supabase kapag binitawan ang slider
+  slider?.addEventListener("change", async (e) => {
+    if (supabaseClient) {
+      const brightnessVal = parseInt(e.target.value);
+      
+      await supabaseClient.from("device_states").update({ led_brightness: brightnessVal }).eq("id", 1);
+      
+      insertSupabaseRecord("control_events", {
+        session_id: state.sessionId,
+        equipment_name: "LED Strip (Chamber)",
+        event_reason: `Brightness adjusted to ${brightnessVal}%`
+      });
+      showToast(`LED Brightness set to ${brightnessVal}%`);
+    }
+  });
+
+  // 4. Heater SSR Toggle
   const btnSsr = document.getElementById("btn-ssr-engaged");
   const wattageEl = document.getElementById("heater-wattage");
   const ssrStateText = document.getElementById("ssr-state-text");
@@ -1638,16 +1711,18 @@ function initCameraSsrAndActuators() {
       false,
       false
     );
+    
     if (supabaseClient) {
-  supabaseClient.from("device_states").update({ heater: state.ssrEngaged }).eq("id", 1);
-  insertSupabaseRecord("control_events", {
-    session_id: state.sessionId,
-    equipment_name: "600W PTC Heater (SSR)",
-    event_reason: state.ssrEngaged ? "ENGAGED" : "DISENGAGED"
-  });
-  }
+      supabaseClient.from("device_states").update({ heater: state.ssrEngaged }).eq("id", 1);
+      insertSupabaseRecord("control_events", {
+        session_id: state.sessionId,
+        equipment_name: "600W PTC Heater (SSR)",
+        event_reason: state.ssrEngaged ? "ENGAGED" : "DISENGAGED"
+      });
+    }
   });
 
+  // 5. ESP32-CAM Refresh Button
   document.getElementById("btn-refresh-cam")?.addEventListener("click", () => {
     const now = new Date().toLocaleTimeString();
     const camTs = document.getElementById("cam-timestamp");
@@ -1655,13 +1730,25 @@ function initCameraSsrAndActuators() {
     showToast("ESP32-CAM captured a new overhead frame.");
   });
 
+  // 6. ESP32-CAM Flash Button
   const viewport = document.getElementById("camera-viewport");
-  document.getElementById("btn-cam-flash")?.addEventListener("click", () => {
+  document.getElementById("btn-cam-flash")?.addEventListener("click", async () => {
     state.camFlash = !state.camFlash;
     viewport?.classList.toggle("flash-active", state.camFlash);
     showToast(`ESP32-CAM Flash: ${state.camFlash ? "ON" : "OFF"}`);
-  });
 
+    if (supabaseClient) {
+      await supabaseClient.from("device_states").update({ cam_flash: state.camFlash }).eq("id", 1);
+      
+      insertSupabaseRecord("control_events", {
+        session_id: state.sessionId,
+        equipment_name: "ESP32-CAM Flash",
+        event_reason: state.camFlash ? "Turned ON" : "Turned OFF"
+      });
+    }
+  }); 
+
+  // 7. Auto/Manual Mode Toggle
   const btnMode = document.getElementById("btn-toggle-control-mode");
   const modeText = document.getElementById("control-mode-text");
   btnMode?.addEventListener("click", () => {
@@ -1674,45 +1761,7 @@ function initCameraSsrAndActuators() {
       false
     );
   });
-
-  document.querySelectorAll(".actuator-toggle").forEach((toggle) => {
-    toggle.addEventListener("change", async (e) => {
-      const eq = e.target.getAttribute("data-equipment");
-      const iconBoxId = e.target.getAttribute("data-icon-box");
-      const isOn = e.target.checked;
-
-      if (iconBoxId) {
-        const boxEl = document.getElementById(iconBoxId);
-        if (boxEl) boxEl.classList.toggle("spin-active", isOn);
-      }
-
-      if (state.autoMode) {
-        state.autoMode = false;
-        if (modeText) modeText.textContent = "MANUAL OVERRIDE";
-      }
-
-      addNotification(`Control System: ${eq} turned ${isOn ? "ON" : "OFF"}.`, false, false);
-
-      // Supabase Telemetry Update (Dapat nasa loob ito ng event listener)
-      if (supabaseClient) {
-        let column = "";
-        if (eq.includes("Blower")) column = "blower";
-        else if (eq.includes("Fan A")) column = "exhaust_a";
-        else if (eq.includes("Fan B")) column = "exhaust_b";
-        else if (eq.includes("LED")) column = "led";
-
-        if (column) {
-          await supabaseClient.from("device_states").update({ [column]: isOn }).eq("id", 1);
-          insertSupabaseRecord("control_events", {
-            session_id: state.sessionId,
-            equipment_name: eq,
-            event_reason: isOn ? "Turned ON" : "Turned OFF"
-          });
-        }
-      }
-    });
-  });
-} 
+} // <--- Only ONE closing bracket for the entire initCameraSsrAndActuators function
 /* ==========================================================================
    10. PREVENTIVE ALERT MODULE (HIGH TEMP, MOLD, 48H WARNING + LCD RED ALERT)
    ========================================================================== */
