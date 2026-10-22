@@ -1600,7 +1600,7 @@ function setMoldClassificationState(level) {
   updateBatchSafetyStatus();
 }
 
-function initCameraSsrAndActuators() {
+  function initCameraSsrAndActuators() {
   // 1. Mold Classification Buttons
   document.querySelectorAll(".mold-state-btn").forEach((btn) => {
     btn.addEventListener("click", () => {
@@ -1655,16 +1655,13 @@ function initCameraSsrAndActuators() {
 
   // 3. LED Brightness Slider UI at Telemetry
   const slider = document.getElementById("led-brightness-slider");
-  const val = document.getElementById("led-brightness-val");
-  
-  // Nag-u-update ng text habang hinihila
+  const val = document.getElementById("led-brightness-val");  
   slider?.addEventListener("input", (e) => {
     if (val) {
       val.textContent = `${e.target.value}%`;
     }
   });
 
-  // Nagse-send sa Supabase kapag binitawan ang slider
   slider?.addEventListener("change", async (e) => {
     if (supabaseClient) {
       const brightnessVal = parseInt(e.target.value);
@@ -1686,7 +1683,7 @@ function initCameraSsrAndActuators() {
   const ssrStateText = document.getElementById("ssr-state-text");
   const flameIcon = document.getElementById("heater-flame-icon");
 
-  btnSsr?.addEventListener("click", () => {
+  btnSsr?.addEventListener("click", async () => {
     state.ssrEngaged = !state.ssrEngaged;
 
     if (state.ssrEngaged) {
@@ -1713,7 +1710,7 @@ function initCameraSsrAndActuators() {
     );
     
     if (supabaseClient) {
-      supabaseClient.from("device_states").update({ heater: state.ssrEngaged }).eq("id", 1);
+      await supabaseClient.from("device_states").update({ heater: state.ssrEngaged }).eq("id", 1);
       insertSupabaseRecord("control_events", {
         session_id: state.sessionId,
         equipment_name: "600W PTC Heater (SSR)",
@@ -1761,11 +1758,12 @@ function initCameraSsrAndActuators() {
       false
     );
   });
-} // <--- Only ONE closing bracket for the entire initCameraSsrAndActuators function
+} 
+
 /* ==========================================================================
    10. PREVENTIVE ALERT MODULE (HIGH TEMP, MOLD, 48H WARNING + LCD RED ALERT)
    ========================================================================== */
-   function initPreventiveAlertModule() {
+function initPreventiveAlertModule() {
   const btnSimHighTemp = document.getElementById("btn-simulate-high-temp");
   const btnSimMold = document.getElementById("btn-simulate-mold");
   const btnSimRate = document.getElementById("btn-simulate-rate-warn");
