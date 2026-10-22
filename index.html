@@ -283,7 +283,7 @@
           <button class="side-icon-btn" id="btn-sync-telemetry" title="Sync ESP32 & Supabase Telemetry">
             <i data-lucide="refresh-cw"></i>
           </button>
-          <button class="side-icon-btn" id="btn-toggle-lcd" title="Local 16x2 I2C LCD Display Mirror">
+          <button class="side-icon-btn" id="btn-toggle-lcd" title="Local 20x4 I2C LCD Display Mirror">
             <i data-lucide="monitor"></i>
           </button>
           <button class="side-icon-btn" id="btn-open-sms-settings" title="SMS Gateway Settings">
@@ -312,8 +312,8 @@
                 <span class="pulse-dot" id="wifi-pulse-dot"></span>
                 <span id="wifi-status-text">Wi-Fi Online • Critical SMS Ready</span>
               </button>
-              <button type="button" class="conn-badge lcd-badge clickable-badge" id="btn-inline-lcd" title="Click to open 16x2 I2C LCD Display">
-                <i data-lucide="cpu"></i> 16x2 I2C LCD: <strong id="lcd-inline-text">T:56.1C RH:37.5%</strong>
+              <button type="button" class="conn-badge lcd-badge clickable-badge" id="btn-inline-lcd" title="Click to open 20x4 I2C LCD Display">
+                <i data-lucide="cpu"></i> 20x4 I2C LCD: <strong id="lcd-inline-text">T:56.1C RH:37.5%</strong>
               </button>
             </div>
           </div>
@@ -664,7 +664,7 @@
                     </div>
                   </div>
                   <label class="switch">
-                    <input type="checkbox" class="actuator-toggle" id="toggle-blower" data-equipment="12V Centrifugal Blower" data-icon-box="icon-box-blower" checked />
+                    <input type="checkbox" class="actuator-toggle" id="toggle-blower" data-equipment="12V Centrifugal Blower" data-icon-box="icon-box-blower" />
                     <span class="slider"></span>
                   </label>
                 </div>
@@ -681,7 +681,7 @@
                     </div>
                   </div>
                   <label class="switch">
-                    <input type="checkbox" class="actuator-toggle" id="toggle-fan-a" data-equipment="Exhaust Fan A" data-icon-box="icon-box-fan-a" checked />
+                    <input type="checkbox" class="actuator-toggle" id="toggle-fan-a" data-equipment="Exhaust Fan A" data-icon-box="icon-box-fan-a" />
                     <span class="slider"></span>
                   </label>
                 </div>
@@ -698,7 +698,7 @@
                     </div>
                   </div>
                   <label class="switch">
-                    <input type="checkbox" class="actuator-toggle" id="toggle-fan-b" data-equipment="Exhaust Fan B" data-icon-box="icon-box-fan-b" checked />
+                    <input type="checkbox" class="actuator-toggle" id="toggle-fan-b" data-equipment="Exhaust Fan B" data-icon-box="icon-box-fan-b" />
                     <span class="slider"></span>
                   </label>
                 </div>
@@ -716,7 +716,7 @@
                       </div>
                     </div>
                     <label class="switch">
-                      <input type="checkbox" class="actuator-toggle" id="toggle-led" data-equipment="LED Strip (Chamber)" checked />
+                      <input type="checkbox" class="actuator-toggle" id="toggle-led" data-equipment="LED Strip (Chamber)" />
                       <span class="slider"></span>
                     </label>
                   </div>
@@ -1319,16 +1319,16 @@
   </div>
 
   <!-- ==========================================
-       MODAL 4: LOCAL 16x2 I2C LCD MODULE MIRROR (MAY PULANG MESSAGE ALERT)
+       MODAL 4: LOCAL 20x4 I2C LCD MODULE MIRROR (MAY PULANG MESSAGE ALERT)
        ========================================== -->
   <div id="lcd-modal" class="modal-backdrop">
     <div class="modal-box">
       <div class="modal-header">
-        <h4><i data-lucide="monitor"></i> Local 16x2 I2C LCD Module</h4>
+        <h4><i data-lucide="monitor"></i> Local 20x4 I2C LCD Module</h4>
         <button type="button" class="modal-close" id="close-lcd-modal">&times;</button>
       </div>
       <p class="modal-sub">
-        Exact Mirror of <strong>16x2 I2C LCD</strong> (16 characters x 2 rows) in chamber. Turns red <strong> (Red Alert)</strong> when there is urgent chamber warning.
+        Exact Mirror of <strong>20x4 I2C LCD</strong> (16 characters x 2 rows) in chamber. Turns red <strong> (Red Alert)</strong> when there is urgent chamber warning.
       </p>
 
       <!-- PULANG MESSAGE ALERT BANNER PARA SA LCD -->
@@ -1340,7 +1340,7 @@
         </div>
       </div>
 
-      <div class="lcd-hardware-screen lcd-16x2" id="lcd-hardware-screen">
+      <div class="lcd-hardware-screen lcd-20x4" id="lcd-hardware-screen">
         <div class="lcd-line" id="lcd-line-1">T:56.1C RH:37.5%</div>
         <div class="lcd-line" id="lcd-line-2">MC:13.0% SSR:ON </div>
       </div>

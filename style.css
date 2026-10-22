@@ -1,7 +1,7 @@
 /* ==========================================================================
    COPRACURE STYLESHEET (style.css)
    - Icon Buttons for Theme Mode & System Language
-   - Red Alert Styling for 16x2 I2C LCD Module
+   - Red Alert Styling for 20x4 I2C LCD Module
    - Admin / Developer Lock Styling for Sensor Calibration
    ========================================================================== */
 
@@ -2319,7 +2319,7 @@ html[data-theme="dark"] .stat-val { color: #4ade80; }
   color: #ffffff;
 }
 
-/* PULANG MESSAGE ALERT SA 16x2 I2C LCD */
+/* PULANG MESSAGE ALERT SA 20x4 I2C LCD */
 .lcd-red-alert-box {
   background: #fef2f2;
   border: 2px solid #dc2626;
@@ -2340,7 +2340,7 @@ html[data-theme="dark"] .stat-val { color: #4ade80; }
   margin-bottom: 2px;
 }
 
-.lcd-hardware-screen.lcd-16x2 {
+.lcd-hardware-screen.lcd-20x4 {
   background: #8bac0f;
   border: 8px solid #1e293b;
   border-radius: 8px;
@@ -2357,7 +2357,7 @@ html[data-theme="dark"] .stat-val { color: #4ade80; }
 }
 
 /* Kapag may Red Alert sa LCD */
-.lcd-hardware-screen.lcd-16x2.lcd-danger-mode {
+.lcd-hardware-screen.lcd-20x4.lcd-danger-mode {
   background: #dc2626;
   border-color: #7f1d1d;
   color: #ffffff;
