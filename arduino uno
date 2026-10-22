@@ -1,0 +1,211 @@
+#include <WiFi.h>
+#include <HTTPClient.h>
+#include <Wire.h>
+#include <LiquidCrystal_I2C.h>
+#include <ArduinoJson.h> // Tiyaking tugma ang version (v6 or v7)
+#include "Adafruit_SHT31.h"
+
+// ==========================================
+// 1. WIFI & SUPABASE CONFIGURATION
+// ==========================================
+const char* ssid = "GlobeAtHome_203C7_2.4";     
+const char* password = "Panasonic_Taguig"; 
+
+// Itinugma sa credentials mula sa script.js
+const char* supabaseUrl = "https://wvpyqzzcfzwtmcfaeejz.supabase.co";
+const char* supabaseKey = "sb_publishable_h0U05WcbvI6VT03EVrxtgg_Acj5c_zK";
+
+// ==========================================
+// 2. PIN MAPPINGS & OBJECTS
+// ==========================================
+#define MOSFET_BLOWER    26
+#define MOSFET_EXHAUST_A 25
+#define MOSFET_EXHAUST_B 25
+#define MOSFET_LED       27
+#define MOSFET_SSR       23
+#define MOISTURE_PIN     34 // ADC Pin para sa Experimental Moisture Probe
+
+LiquidCrystal_I2C lcd(0x27, 16, 2); 
+Adafruit_SHT31 sht31 = Adafruit_SHT31();
+
+unsigned long lastFetchTime = 0;
+unsigned long lastPostTime = 0;
+const unsigned long fetchInterval = 3000; // 3 segundo para sa commands/LCD
+const unsigned long postInterval = 10000; // 10 segundo para mag-send ng sensor data
+
+// Global variables para sa Sensor Calibration Offsets
+float temp_offset = 0.0;
+float rh_offset = 0.0;
+float mc_offset = 0.0;
+
+void setup() {
+  Serial.begin(115200);
+  Serial2.begin(115200, SERIAL_8N1, 16, 17); // ESP32-CAM Serial
+
+  // I-setup ang mga MOSFET Pins
+  pinMode(MOSFET_BLOWER, OUTPUT);
+  pinMode(MOSFET_EXHAUST_A, OUTPUT);
+  pinMode(MOSFET_EXHAUST_B, OUTPUT);
+  pinMode(MOSFET_LED, OUTPUT);
+  pinMode(MOSFET_SSR, OUTPUT);
+
+  // Siguraduhing Naka-OFF lahat sa simula
+  digitalWrite(MOSFET_BLOWER, LOW);
+  digitalWrite(MOSFET_EXHAUST_A, LOW);
+  digitalWrite(MOSFET_EXHAUST_B, LOW);
+  digitalWrite(MOSFET_LED, LOW);
+  digitalWrite(MOSFET_SSR, LOW);
+
+  // I-setup ang I2C para sa LCD at SHT31
+  Wire.begin(21, 22);
+  
+  lcd.init();
+  lcd.backlight();
+  lcd.setCursor(0, 0);
+  lcd.print("CopraCure Init..");
+
+  // I-check ang SHT31 Sensor (0x44)
+  if (!sht31.begin(0x44)) { 
+    Serial.println("ERROR: Hindi makita ang SHT31!");
+    lcd.setCursor(0, 1);
+    lcd.print("SHT31 Error!    ");
+    while (1) delay(1);
+  }
+
+  // Kumonekta sa WiFi
+  WiFi.begin(ssid, password);
+  Serial.print("Connecting to WiFi");
+  while (WiFi.status() != WL_CONNECTED) {
+    delay(500);
+    Serial.print(".");
+  }
+  Serial.println("\nWiFi Connected!");
+  lcd.setCursor(0, 1);
+  lcd.print("WiFi Connected! ");
+  delay(1000);
+}
+
+void loop() {
+  if (WiFi.status() == WL_CONNECTED) {
+    // 1. Kunin ang commands, LCD text, at offsets mula sa device_states
+    if ((millis() - lastFetchTime) > fetchInterval) {
+      fetchSupabaseDeviceStates();
+      lastFetchTime = millis();
+    }
+
+    // 2. Mag-post ng Sensor Data sa sensor_readings table
+    if ((millis() - lastPostTime) > postInterval) {
+      postSensorReadings();
+      lastPostTime = millis();
+    }
+  }
+}
+
+void fetchSupabaseDeviceStates() {
+  HTTPClient http;
+  String url = String(supabaseUrl) + "/rest/v1/device_states?id=eq.1&select=*";
+  http.begin(url);
+  http.addHeader("apikey", supabaseKey);
+  http.addHeader("Authorization", String("Bearer ") + supabaseKey);
+
+  int httpResponseCode = http.GET();
+
+  if (httpResponseCode == 200) {
+    String payload = http.getString();
+    
+    // Alisin ang square brackets kung array ang ibinalik ng Supabase
+    if(payload.startsWith("[")) {
+      payload = payload.substring(1, payload.length() - 1);
+    }
+
+    // Kung gamit mo ay ArduinoJson Version 7, palitan ang StaticJsonDocument ng 'JsonDocument doc;'
+    StaticJsonDocument<512> doc;
+    DeserializationError error = deserializeJson(doc, payload);
+
+    if (!error) {
+      // Actuator Control
+      digitalWrite(MOSFET_BLOWER, doc["blower"].as<bool>() ? HIGH : LOW);
+      digitalWrite(MOSFET_EXHAUST_A, doc["exhaust_a"].as<bool>() ? HIGH : LOW);
+      digitalWrite(MOSFET_EXHAUST_B, doc["exhaust_b"].as<bool>() ? HIGH : LOW);
+      digitalWrite(MOSFET_LED, doc["led"].as<bool>() ? HIGH : LOW);
+      digitalWrite(MOSFET_SSR, doc["heater"].as<bool>() ? HIGH : LOW);
+
+      // Calibration Offsets mula sa Admin Dashboard
+      temp_offset = doc["temp_offset"].as<float>();
+      rh_offset = doc["rh_offset"].as<float>();
+      mc_offset = doc["mc_offset"].as<float>();
+
+      // 16x2 I2C LCD Mirroring
+      String line1 = doc["lcd_line1"].as<String>();
+      String line2 = doc["lcd_line2"].as<String>();
+      bool isAlert = doc["lcd_alert_active"].as<bool>();
+
+      lcd.clear();
+      lcd.setCursor(0, 0);
+      lcd.print(line1.substring(0, 16));
+      lcd.setCursor(0, 1);
+      lcd.print(line2.substring(0, 16));
+
+      // Mag-blink ang LCD kung may Red Alert
+      if (isAlert) {
+        lcd.noBacklight();
+        delay(150);
+        lcd.backlight();
+      }
+    }
+  } else {
+    Serial.println("Error fetching device_states: " + String(httpResponseCode));
+  }
+  http.end();
+}
+
+void postSensorReadings() {
+  // Basahin ang totoong SHT31 values
+  float raw_temp = sht31.readTemperature(); 
+  float raw_rh = sht31.readHumidity();
+
+  // Basahin ang Analog Moisture sensor (0-4095 ADC)
+  int raw_mc_adc = analogRead(MOISTURE_PIN);
+  float raw_mc = map(raw_mc_adc, 0, 4095, 0, 100);
+
+  if (isnan(raw_temp) || isnan(raw_rh)) {
+    Serial.println("Failed to read from SHT31 sensor!");
+    return;
+  }
+
+  // I-apply ang calibration offsets
+  float final_temp = raw_temp + temp_offset;
+  float final_rh = raw_rh + rh_offset;
+  float final_mc = raw_mc + mc_offset;
+
+  // =========================================================
+  // DIRECT REAL-TIME LCD UPDATE (Para 0-delay ang display)
+  // =========================================================
+  lcd.clear();
+  lcd.setCursor(0, 0);
+  lcd.print("T:"); lcd.print(final_temp, 1); lcd.print("C RH:"); lcd.print(final_rh, 1); lcd.print("% ");
+  lcd.setCursor(0, 1);
+  lcd.print("MC:"); lcd.print(final_mc, 1); lcd.print("%");
+
+  HTTPClient http;
+  String url = String(supabaseUrl) + "/rest/v1/sensor_readings";
+  http.begin(url);
+  http.addHeader("apikey", supabaseKey);
+  http.addHeader("Authorization", String("Bearer ") + supabaseKey);
+  http.addHeader("Content-Type", "application/json");
+  http.addHeader("Prefer", "return=minimal");
+
+  // Gumawa ng JSON payload
+  String jsonPayload = "{\"session_id\":\"BATCH-2026-001\",";
+  jsonPayload += "\"temperature\":" + String(final_temp, 2) + ",";
+  jsonPayload += "\"humidity\":" + String(final_rh, 2) + ",";
+  jsonPayload += "\"moisture_probe_reading\":" + String(final_mc, 2) + "}";
+
+  int httpResponseCode = http.POST(jsonPayload);
+  if (httpResponseCode >= 200 && httpResponseCode < 300) {
+    Serial.println("Sensor Data Sent & LCD Updated");
+  } else {
+    Serial.println("Error Sending Sensor Data: " + String(httpResponseCode));
+  }
+  http.end();
+}
