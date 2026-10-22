@@ -2,7 +2,7 @@
 #include <HTTPClient.h>
 #include <Wire.h>
 #include <LiquidCrystal_I2C.h>
-#include <ArduinoJson.h> // Tiyaking tugma ang version (v6 or v7)
+#include <ArduinoJson.h>
 #include "Adafruit_SHT31.h"
 
 // ==========================================
@@ -10,8 +10,6 @@
 // ==========================================
 const char* ssid = "GlobeAtHome_203C7_2.4";     
 const char* password = "Panasonic_Taguig"; 
-
-// Itinugma sa credentials mula sa script.js
 const char* supabaseUrl = "https://wvpyqzzcfzwtmcfaeejz.supabase.co";
 const char* supabaseKey = "sb_publishable_h0U05WcbvI6VT03EVrxtgg_Acj5c_zK";
 
@@ -19,44 +17,57 @@ const char* supabaseKey = "sb_publishable_h0U05WcbvI6VT03EVrxtgg_Acj5c_zK";
 // 2. PIN MAPPINGS & OBJECTS
 // ==========================================
 #define MOSFET_BLOWER    26
-#define MOSFET_EXHAUST_A 25
-#define MOSFET_EXHAUST_B 25
+#define MOSFET_EXHAUST_A 25 // Naka-Y connection ang Fan A at Fan B sa iisang Pin 25
+#define MOSFET_EXHAUST_B 25 
 #define MOSFET_LED       27
 #define MOSFET_SSR       23
 #define MOISTURE_PIN     34 // ADC Pin para sa Experimental Moisture Probe
 
-LiquidCrystal_I2C lcd(0x27, 16, 2); 
+// PWM Settings para sa LED Strip Control
+const int ledChannel = 0;
+const int pwmFreq = 5000;
+const int pwmResolution = 8; // 8-bit resolution (0-255)
+
+// 20x4 I2C LCD Configuration
+LiquidCrystal_I2C lcd(0x27, 20, 4); 
 Adafruit_SHT31 sht31 = Adafruit_SHT31();
 
 unsigned long lastFetchTime = 0;
 unsigned long lastPostTime = 0;
-const unsigned long fetchInterval = 3000; // 3 segundo para sa commands/LCD
-const unsigned long postInterval = 10000; // 10 segundo para mag-send ng sensor data
+const unsigned long fetchInterval = 3000;  // 3 segundong pagbasa ng commands (device_states)
+const unsigned long postInterval = 10000;  // 10 segundong pagpapadala ng telemetry
 
-// Global variables para sa Sensor Calibration Offsets
+// Global Variables
 float temp_offset = 0.0;
 float rh_offset = 0.0;
 float mc_offset = 0.0;
+bool isAlertActive = false;
+String dbLcdLine1 = "";
+String dbLcdLine2 = "";
 
 void setup() {
   Serial.begin(115200);
-  Serial2.begin(115200, SERIAL_8N1, 16, 17); // ESP32-CAM Serial
+  // Serial2 para mag-usap ang ESP32 at ESP32-CAM (RX: 16, TX: 17)
+  Serial2.begin(115200, SERIAL_8N1, 16, 17); 
 
-  // I-setup ang mga MOSFET Pins
+  // I-setup ang mga normal na MOSFET Pins
   pinMode(MOSFET_BLOWER, OUTPUT);
   pinMode(MOSFET_EXHAUST_A, OUTPUT);
   pinMode(MOSFET_EXHAUST_B, OUTPUT);
-  pinMode(MOSFET_LED, OUTPUT);
   pinMode(MOSFET_SSR, OUTPUT);
 
-  // Siguraduhing Naka-OFF lahat sa simula
+  // Siguraduhing Naka-OFF ang standard actuators sa simula
   digitalWrite(MOSFET_BLOWER, LOW);
   digitalWrite(MOSFET_EXHAUST_A, LOW);
   digitalWrite(MOSFET_EXHAUST_B, LOW);
-  digitalWrite(MOSFET_LED, LOW);
   digitalWrite(MOSFET_SSR, LOW);
 
-  // I-setup ang I2C para sa LCD at SHT31
+  // I-setup ang PWM (LEDC) para sa LED Strip
+  ledcSetup(ledChannel, pwmFreq, pwmResolution);
+  ledcAttachPin(MOSFET_LED, ledChannel);
+  ledcWrite(ledChannel, 0); // Siguraduhing OFF sa simula
+
+  // I-setup ang I2C para sa 20x4 LCD at SHT31
   Wire.begin(21, 22);
   
   lcd.init();
@@ -68,7 +79,7 @@ void setup() {
   if (!sht31.begin(0x44)) { 
     Serial.println("ERROR: Hindi makita ang SHT31!");
     lcd.setCursor(0, 1);
-    lcd.print("SHT31 Error!    ");
+    lcd.print("SHT31 Error!        ");
     while (1) delay(1);
   }
 
@@ -81,23 +92,25 @@ void setup() {
   }
   Serial.println("\nWiFi Connected!");
   lcd.setCursor(0, 1);
-  lcd.print("WiFi Connected! ");
+  lcd.print("WiFi Connected!     ");
   delay(1000);
 }
 
 void loop() {
   if (WiFi.status() == WL_CONNECTED) {
-    // 1. Kunin ang commands, LCD text, at offsets mula sa device_states
+    
+    // 1. Kunin ang commands at status mula sa device_states table
     if ((millis() - lastFetchTime) > fetchInterval) {
       fetchSupabaseDeviceStates();
       lastFetchTime = millis();
     }
 
-    // 2. Mag-post ng Sensor Data sa sensor_readings table
+    // 2. Ipadala ang totoong Sensor Data sa sensor_readings table
     if ((millis() - lastPostTime) > postInterval) {
       postSensorReadings();
       lastPostTime = millis();
     }
+
   }
 }
 
@@ -113,41 +126,52 @@ void fetchSupabaseDeviceStates() {
   if (httpResponseCode == 200) {
     String payload = http.getString();
     
-    // Alisin ang square brackets kung array ang ibinalik ng Supabase
     if(payload.startsWith("[")) {
       payload = payload.substring(1, payload.length() - 1);
     }
 
-    // Kung gamit mo ay ArduinoJson Version 7, palitan ang StaticJsonDocument ng 'JsonDocument doc;'
-    StaticJsonDocument<512> doc;
+    JsonDocument doc; // ArduinoJson v7
     DeserializationError error = deserializeJson(doc, payload);
 
     if (!error) {
-      // Actuator Control
+      // Actuator Control (ON/OFF)
       digitalWrite(MOSFET_BLOWER, doc["blower"].as<bool>() ? HIGH : LOW);
       digitalWrite(MOSFET_EXHAUST_A, doc["exhaust_a"].as<bool>() ? HIGH : LOW);
       digitalWrite(MOSFET_EXHAUST_B, doc["exhaust_b"].as<bool>() ? HIGH : LOW);
-      digitalWrite(MOSFET_LED, doc["led"].as<bool>() ? HIGH : LOW);
       digitalWrite(MOSFET_SSR, doc["heater"].as<bool>() ? HIGH : LOW);
+
+      // PWM LED Strip Control (Brightness 0-100%)
+      bool isLedOn = doc["led"].as<bool>();
+      int brightnessPct = doc["led_brightness"].as<int>();
+      int ledDutyCycle = isLedOn ? map(brightnessPct, 0, 100, 0, 255) : 0;
+      ledcWrite(ledChannel, ledDutyCycle);
+
+      // ESP32-CAM Flash Command (Serial2)
+      bool isCamFlashOn = doc["cam_flash"].as<bool>();
+      if (isCamFlashOn) {
+        Serial2.println("FLASH_ON");
+      } else {
+        Serial2.println("FLASH_OFF");
+      }
 
       // Calibration Offsets mula sa Admin Dashboard
       temp_offset = doc["temp_offset"].as<float>();
       rh_offset = doc["rh_offset"].as<float>();
       mc_offset = doc["mc_offset"].as<float>();
 
-      // 16x2 I2C LCD Mirroring
-      String line1 = doc["lcd_line1"].as<String>();
-      String line2 = doc["lcd_line2"].as<String>();
-      bool isAlert = doc["lcd_alert_active"].as<bool>();
+      // Alert Status mula sa Database
+      isAlertActive = doc["lcd_alert_active"].as<bool>();
+      dbLcdLine1 = doc["lcd_line1"].as<String>();
+      dbLcdLine2 = doc["lcd_line2"].as<String>();
 
-      lcd.clear();
-      lcd.setCursor(0, 0);
-      lcd.print(line1.substring(0, 16));
-      lcd.setCursor(0, 1);
-      lcd.print(line2.substring(0, 16));
-
-      // Mag-blink ang LCD kung may Red Alert
-      if (isAlert) {
+      // Kung may red alert, gagamitin ang db text at mag-bi-blink
+      if (isAlertActive) {
+        lcd.clear();
+        lcd.setCursor(0, 0);
+        lcd.print(dbLcdLine1.substring(0, 20));
+        lcd.setCursor(0, 1);
+        lcd.print(dbLcdLine2.substring(0, 20));
+        
         lcd.noBacklight();
         delay(150);
         lcd.backlight();
@@ -178,15 +202,20 @@ void postSensorReadings() {
   float final_rh = raw_rh + rh_offset;
   float final_mc = raw_mc + mc_offset;
 
-  // =========================================================
-  // DIRECT REAL-TIME LCD UPDATE (Para 0-delay ang display)
-  // =========================================================
-  lcd.clear();
-  lcd.setCursor(0, 0);
-  lcd.print("T:"); lcd.print(final_temp, 1); lcd.print("C RH:"); lcd.print(final_rh, 1); lcd.print("% ");
-  lcd.setCursor(0, 1);
-  lcd.print("MC:"); lcd.print(final_mc, 1); lcd.print("%");
+  // I-update ang 20x4 LCD kapag walang aktibong Critical Alert
+  if (!isAlertActive) {
+    lcd.clear();
+    
+    // Line 1
+    lcd.setCursor(0, 0);
+    lcd.print("T:"); lcd.print(final_temp, 1); lcd.print("C RH:"); lcd.print(final_rh, 1); lcd.print("%");
+    
+    // Line 2
+    lcd.setCursor(0, 1);
+    lcd.print("MC:"); lcd.print(final_mc, 1); lcd.print("%");
+  }
 
+  // Magpadala sa Supabase (sensor_readings)
   HTTPClient http;
   String url = String(supabaseUrl) + "/rest/v1/sensor_readings";
   http.begin(url);
@@ -195,7 +224,7 @@ void postSensorReadings() {
   http.addHeader("Content-Type", "application/json");
   http.addHeader("Prefer", "return=minimal");
 
-  // Gumawa ng JSON payload
+  // Gumawa ng JSON payload para sa telemetry
   String jsonPayload = "{\"session_id\":\"BATCH-2026-001\",";
   jsonPayload += "\"temperature\":" + String(final_temp, 2) + ",";
   jsonPayload += "\"humidity\":" + String(final_rh, 2) + ",";
@@ -203,7 +232,7 @@ void postSensorReadings() {
 
   int httpResponseCode = http.POST(jsonPayload);
   if (httpResponseCode >= 200 && httpResponseCode < 300) {
-    Serial.println("Sensor Data Sent & LCD Updated");
+    Serial.println("Sensor Data Sent to Supabase.");
   } else {
     Serial.println("Error Sending Sensor Data: " + String(httpResponseCode));
   }
