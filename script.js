@@ -1758,6 +1758,8 @@ function setMoldClassificationState(level) {
       false
     );
   });
+  update20x4LcdText();
+  updateBatchSafetyStatus();
 } 
 
 /* ==========================================================================
@@ -1786,6 +1788,8 @@ function initPreventiveAlertModule() {
       const highTempSms = `High Temperature! Chamber ${state.sessionId} reached ${state.temperature.toFixed(1)}°C (exceeding 80°C cutoff). KSD301 & Exhaust Fans triggered!`;
       triggerLcdRedAlert("ALRT:HIGH TEMP!", highTempSms);
       addNotification(highTempSms, true, true, highTempSms);
+
+      update20x4LcdText();
     });
   }
 
@@ -2203,15 +2207,23 @@ function update20x4LcdText() {
     if (redAlertBox) redAlertBox.style.display = "none";
   }
 
-  // Supabase Telemetry Update (Dapat bago sumara ang function)
+  // Supabase Telemetry Update
   if (supabaseClient) {
-    supabaseClient.from("device_states").update({
-      lcd_line1: row1,
-      lcd_line2: row2,
-      lcd_alert_active: state.lcdAlertActive
-    }).eq("id", 1);
+    (async () => {
+      const { error } = await supabaseClient.from("device_states").update({
+        lcd_line1: row1,
+        lcd_line2: row2,
+        lcd_alert_active: state.lcdAlertActive
+      }).eq("id", 1);
+
+      if (error) {
+        console.error("❌ Error updating device states:", error.message);
+      } else {
+        console.log("✅ Device states & LCD alert updated to Supabase!");
+      }
+    })();
   }
-}
+  }
 /* ==========================================================================
    13. NAVIGATION, SENSOR SYNC, BATCH CALCULATOR & SUPABASE
    ========================================================================== */
