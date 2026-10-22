@@ -569,31 +569,20 @@
               </div>
             </div>
 
-            <!-- Camera Viewport -->
-            <div class="camera-viewport" id="camera-viewport" style="padding: 0; overflow: hidden;">
-              <!-- ESP32-CAM Live Stream Image Tag -->
-              <img
-                src="http://192.168.254.116:81/stream"
-                alt="CopraCure ESP32-CAM Live Video"
+            <!-- Camera Viewport (Nakaayos na ang tags para lumitaw ang Flash Button) -->
+            <div class="camera-viewport" id="camera-viewport" style="padding: 0; overflow: hidden; position: relative;">
+              <!-- ESP32-CAM Snapshot Image Tag -->
+              <img id="esp32-cam-image" 
+                src="https://wvpyqzzcfzwtmcfaeejz.supabase.co/storage/v1/object/public/copra-snapshots/latest.jpg"
+                alt="CopraCure ESP32-CAM Snapshot"
                 style="width:100%; height:100%; object-fit:contain; background:#111; position: absolute; inset: 0; z-index: 1;"
-                onerror="this.style.display='none'; document.getElementById('cam-overlay-msg').style.display='flex';"/>
-                <!-- Mga Overlays at Controls sa ibabaw ng video -->
-            </div>
-              <div class="cam-laser-line"></div>
-              <div class="cam-corner top-left"></div>
-              <div class="cam-corner top-right"></div>
-              <div class="cam-corner bottom-left"></div>
-              <div class="cam-corner bottom-right"></div>
+              />
+              
+              <div class="cam-laser-line" style="z-index: 2; pointer-events: none;"></div>
+              <div class="cam-timestamp" id="cam-timestamp" style="z-index: 2; position: relative; margin: 12px;">BATCH-2026-001 • CLOUD</div>
 
-              <div class="cam-timestamp" id="cam-timestamp">BATCH-2026-001 • 1:52:46 PM</div>
-
-              <div class="cam-center-overlay" id="cam-overlay-msg">
-                <i data-lucide="scan-eye" class="cam-scan-icon pulse-anim"></i>
-                <span data-i18n="cam_active_msg">Single-Tray Chamber Inspection Active</span>
-                <small id="cam-surface-note">Visible Mold Classification: NONE (Healthy Kernel Surface)</small>
-              </div>
-
-              <div class="cam-bottom-controls">
+              <!-- Dito na nakalagay nang tama ang Flash Button sa loob ng Viewport -->
+              <div class="cam-bottom-controls" style="z-index: 2; position: absolute; bottom: 10px; left: 10px; right: 10px; display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
                 <span class="mdbp-badge" id="mdbp-badge">MDBP - ACTIVE</span>
                 <button type="button" class="btn-cam-flash" id="btn-cam-flash">
                   <i data-lucide="zap"></i> CAM FLASH

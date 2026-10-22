@@ -1720,11 +1720,14 @@ function setMoldClassificationState(level) {
   });
 
   // 5. ESP32-CAM Refresh Button
-  document.getElementById("btn-refresh-cam")?.addEventListener("click", () => {
+  document.getElementById("btn-refresh-cam").addEventListener("click", () => {
     const now = new Date().toLocaleTimeString();
-    const camTs = document.getElementById("cam-timestamp");
-    if (camTs) camTs.textContent = `${state.sessionId} • ${now}`;
-    showToast("ESP32-CAM captured a new overhead frame.");
+    document.getElementById("cam-timestamp").textContent = `${state.sessionId} • ${now}`;
+    
+    // Tawagin dito ang function para mag-update agad ang larawan kapag pinindot ang button
+    refreshCameraSnapshot();
+    
+    showToast("ESP32-CAM fetched a new snapshot from cloud.");
   });
 
   // 6. ESP32-CAM Flash Button
@@ -2224,6 +2227,17 @@ function update20x4LcdText() {
     })();
   }
   }
+  function refreshCameraSnapshot() {
+  const imgElement = document.getElementById("esp32-cam-image");
+  if (imgElement) {
+    const timestamp = new Date().getTime();
+    // Kumukuha ng pinakabagong larawan mula sa Supabase Storage URL
+    imgElement.src = `src=https://wvpyqzzcfzwtmcfaeejz.supabase.co/storage/v1/object/public/copra-snapshots/latest.jpg?t=${timestamp}`;
+  }
+}
+
+// I-refresh ang snapshot kada 5 segundo o i-trigger sa pamamagitan ng button click
+setInterval(refreshCameraSnapshot, 5000);
 /* ==========================================================================
    13. NAVIGATION, SENSOR SYNC, BATCH CALCULATOR & SUPABASE
    ========================================================================== */
