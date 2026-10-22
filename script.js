@@ -40,9 +40,9 @@ const state = {
   isFirstTimeLogin: true,
   smsRecipientNumber: "09123456789",
   sessionId: "BATCH-2026-001",
-  sessionActive: true,
+  sessionActive: false,
   wifiOnline: true,
-  ssrEngaged: true,
+  ssrEngaged: false,
   autoMode: true,
   camFlash: false,
   adminCalibrationUnlocked: false,
@@ -242,6 +242,29 @@ document.addEventListener("DOMContentLoaded", () => {
   initBatchCalculationsAndCsv();
   initLocal20x4LcdModal();
   initSupabaseRealtime();
+
+  // Piliting i-OFF ang Heater UI sa simula
+  const btnSsr = document.getElementById("btn-ssr-engaged");
+  const wattageEl = document.getElementById("heater-wattage");
+  const flameIcon = document.getElementById("heater-flame-icon");
+  if (btnSsr) {
+    btnSsr.textContent = "DISENGAGED";
+    btnSsr.classList.remove("engaged");
+    btnSsr.classList.add("disengaged");
+  }
+  if (wattageEl) wattageEl.textContent = "0 W";
+  if (flameIcon) flameIcon.classList.remove("flame-active");
+
+  // Piliting i-OFF ang Drying Session UI sa simula
+  const badge = document.getElementById("session-state-badge");
+  const stageText = document.getElementById("session-stage-text");
+  const btnPauseResume = document.getElementById("btn-pause-resume-session");
+  if (badge) badge.innerHTML = `<span class="pulse-dot offline"></span> STANDBY / PAUSED: <strong>${state.sessionId}</strong>`;
+  if (stageText) stageText.textContent = "Standby Mode";
+  if (btnPauseResume) btnPauseResume.innerHTML = `<i data-lucide="play"></i> <span>Resume Session</span>`;
+
+  // I-update ang LCD para lumabas ang SSR:OFF
+  update20x4LcdText();
 
   // Pinapanatili ang active session kapag nag-refresh ng page
   checkActiveSession();
@@ -1701,19 +1724,19 @@ function initCameraSsrAndActuators() {
 
   if (btnSimHighTemp) {
     btnSimHighTemp.addEventListener("click", () => {
-      state.temperature = 64.8;
+      state.temperature = 84.8;
       const tempEl = document.getElementById("val-temperature");
       const riskText = document.getElementById("risk-text");
       const riskDot = document.getElementById("risk-dot");
 
       if (tempEl) tempEl.textContent = state.temperature.toFixed(1);
       if (riskText) {
-        riskText.textContent = "HIGH TEMPERATURE ALERT (>60°C)";
+        riskText.textContent = "HIGH TEMPERATURE ALERT (>80°C)";
         riskText.style.color = "#dc2626";
       }
       if (riskDot) riskDot.className = "status-dot red";
 
-      const highTempSms = `High Temperature! Chamber ${state.sessionId} reached ${state.temperature.toFixed(1)}°C (exceeding 60°C cutoff). KSD301 & Exhaust Fans triggered!`;
+      const highTempSms = `High Temperature! Chamber ${state.sessionId} reached ${state.temperature.toFixed(1)}°C (exceeding 80°C cutoff). KSD301 & Exhaust Fans triggered!`;
       triggerLcdRedAlert("ALRT:HIGH TEMP!", highTempSms);
       addNotification(highTempSms, true, true, highTempSms);
     });
@@ -2272,7 +2295,7 @@ function initSupabaseRealtime() {
           if (rhEl) rhEl.textContent = state.humidity.toFixed(1);
           if (mcEl) mcEl.textContent = state.moisture.toFixed(1);
 
-          if (state.temperature > 60.0) {
+          if (state.temperature > 80.0) {
             const highTempMsg = `High Temperature! Chamber reached ${state.temperature.toFixed(1)}°C!`;
             triggerLcdRedAlert("ALRT:HIGH TEMP!", highTempMsg);
             addNotification(highTempMsg, true, true, highTempMsg);
@@ -2281,6 +2304,8 @@ function initSupabaseRealtime() {
           update20x4LcdText();
           updateDryingSessionProgressUI();
           computeAndRenderCalibrationMetrics(true);
+
+          fetchAndPlotHistoricalTrends();
         }
       }
     )
@@ -2315,3 +2340,73 @@ function showToast(message) {
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3500);
 }
+
+// 1. Function para sa Real-time Session Duration & Completion
+let sessionStartTime = new Date(); // I-sync ito mamaya sa Supabase drying_sessions.start_time
+setInterval(() => {
+  if (!state.sessionActive) return;
+  const now = new Date();
+  const diffMs = now - sessionStartTime;
+  const hrs = Math.floor(diffMs / (1000 * 60 * 60));
+  const mins = Math.floor((diffMs % (1000 * 60 * 60)) / (1000 * 60));
+  
+  const elapsedEl = document.getElementById("sess-elapsed-hrs");
+  const elapsedSubEl = document.getElementById("val-elapsed");
+  if (elapsedEl) elapsedEl.textContent = `${hrs}h ${mins}m`;
+  if (elapsedSubEl) elapsedSubEl.textContent = `${hrs}h ${mins}m`;
+
+  // Computasyon ng Remaining Time (48 hours target)
+  const remMs = (48 * 60 * 60 * 1000) - diffMs;
+  if (remMs > 0) {
+    const rHrs = Math.floor(remMs / (1000 * 60 * 60));
+    const rMins = Math.floor((remMs % (1000 * 60 * 60)) / (1000 * 60));
+    const remEl = document.getElementById("sess-rem-hrs");
+    const valCompEl = document.getElementById("val-completion");
+    if (remEl) remEl.textContent = `${rHrs}h ${rMins}m`;
+    if (valCompEl) valCompEl.textContent = `${rHrs}h ${rMins}m`;
+  }
+}, 60000); // Nag-u-update kada 1 minuto
+
+// 2. Function para I-plot ang Real-Time Historical Trends sa SVG
+async function fetchAndPlotHistoricalTrends() {
+  if (!supabaseClient) return;
+  
+  // Kumuha ng pinakabagong 7 data points
+  const { data, error } = await supabaseClient
+    .from("sensor_readings")
+    .select("temperature, humidity, moisture_probe_reading")
+    .order("created_at", { ascending: false })
+    .limit(7);
+
+  if (error || !data || data.length === 0) return;
+  
+  // I-reverse para chronological (oldest to newest)
+  data.reverse(); 
+
+  const xCoords = [70, 158, 246, 334, 422, 510, 598]; // X-axis points sa SVG mo
+  let tempPts = [], rhPts = [], mcPts = [];
+
+  data.forEach((log, index) => {
+    // Formula ng SVG Y-Axis: y = 284 - (value * 2.5)  (Kung saan 284 = 0, at 34 = 100)
+    const x = xCoords[index] || 598;
+    const yTemp = 284 - ((log.temperature || 0) * 2.5);
+    const yRh = 284 - ((log.humidity || 0) * 2.5);
+    const yMc = 284 - ((log.moisture_probe_reading || 0) * 2.5);
+
+    tempPts.push(`${x},${yTemp.toFixed(1)}`);
+    rhPts.push(`${x},${yRh.toFixed(1)}`);
+    mcPts.push(`${x},${yMc.toFixed(1)}`);
+  });
+
+  // I-update ang SVG <polyline> elements
+  const lineTemp = document.getElementById("line-temp");
+  const lineRh = document.getElementById("line-humidity");
+  const lineMc = document.getElementById("line-moisture");
+  
+  if (lineTemp) lineTemp.setAttribute("points", tempPts.join(" "));
+  if (lineRh) lineRh.setAttribute("points", rhPts.join(" "));
+  if (lineMc) lineMc.setAttribute("points", mcPts.join(" "));
+}
+
+// I-call ang fetchAndPlotHistoricalTrends() tuwing pumapasok ang real-time data
+// Idagdag ang fetchAndPlotHistoricalTrends(); sa loob ng iyong `initSupabaseRealtime()`
