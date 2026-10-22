@@ -11,7 +11,7 @@
    - Icon Buttons for Theme Mode & System Language
    - SMS Dispatched ONLY for Important Alerts (High Temperature, Mold Detected,
      Calibration Needed, AccountUpdated, Welcome Sign-In)
-   - Red Alert Message on 16x2 I2C LCD Module
+   - Red Alert Message on 20x4 I2C LCD Module
    - Admin / Developer Lock for Sensor Calibration (Passcode: admin123)
    ========================================================================== */
 
@@ -76,7 +76,7 @@ const state = {
   notifications: [
     {
       id: 1,
-      text: "CopraCure Chamber BATCH-2026-001 initialized. SHT31 & 16x2 I2C LCD online.",
+      text: "CopraCure Chamber BATCH-2026-001 initialized. SHT31 & 20x4 I2C LCD online.",
       time: "Just now",
       unread: true,
       danger: false
@@ -215,7 +215,7 @@ const i18nDict = {
     modal_forgot_sub: "Piliin kung saan mo gustong ipadala ang iyong 6-digit Reset Code (SMS sa iyong Mobile Number o sa iyong Email).",
     modal_profile_sub: "I-update ang iyong personal na detalye, mobile number/email para sa important SMS alerts, o burahin ang iyong account.",
     modal_sms_sub: "Ang SMS notifications ay naka-filter para lamang sa mahahalagang alerts (High Temperature, Mold Detection, Calibration Needed, Account Updated, at Sign-In Welcome).",
-    modal_lcd_sub: "Eksaktong salamin ng inyong 16x2 I2C LCD module sa chamber. Nagiging pula (Red Alert) kapag may urgent chamber warning.",
+    modal_lcd_sub: "Eksaktong salamin ng 20x4 I2C LCD module sa chamber. Nagiging pula (Red Alert) kapag may urgent chamber warning.",
     modal_admin_sub: "Tanging ang Admin o Developer lamang ang maaaring mag-calibrate ng mga sensors sa chamber. Ilagay ang developer passcode upang buksan.",
     admin_lock_restricted: "Restricted Access: Tanging Admin o Developer lamang ang maaaring mag-calibrate ng sensors at magbago ng reference offsets. Pindutin ang Admin / Developer Access upang buksan.",
     cal_table_ref_desc: "Ang Reference Value ay ma-e-edit lamang kapag naka-unlock ang Admin / Developer Mode.",
@@ -240,7 +240,7 @@ document.addEventListener("DOMContentLoaded", () => {
   initCameraSsrAndActuators();
   initSensorCalibrationModule();
   initBatchCalculationsAndCsv();
-  initLocal16x2LcdModal();
+  initLocal20x4LcdModal();
   initSupabaseRealtime();
 
   // Pinapanatili ang active session kapag nag-refresh ng page
@@ -1573,7 +1573,7 @@ function setMoldClassificationState(level) {
     );
   }
 
-  update16x2LcdText();
+  update20x4LcdText();
   updateBatchSafetyStatus();
 }
 
@@ -1609,7 +1609,7 @@ function initCameraSsrAndActuators() {
       if (flameIcon) flameIcon.classList.remove("flame-active");
     }
 
-    update16x2LcdText();
+    update20x4LcdText();
     addNotification(
       `Control System: 600W PTC Heater SSR Module switched to ${state.ssrEngaged ? "ENGAGED" : "DISENGAGED"}.`,
       false,
@@ -1644,7 +1644,7 @@ function initCameraSsrAndActuators() {
   btnMode?.addEventListener("click", () => {
     state.autoMode = !state.autoMode;
     if (modeText) modeText.textContent = state.autoMode ? "AUTO ENGAGED" : "MANUAL OVERRIDE";
-    update16x2LcdText();
+    update20x4LcdText();
     addNotification(
       `Control System switched to ${state.autoMode ? "AUTOMATED Mode" : "MANUAL Override Mode"}.`,
       false,
@@ -2176,7 +2176,7 @@ function initNavigationAndSidebar() {
     if (rhEl) rhEl.textContent = state.humidity.toFixed(1);
     if (mcEl) mcEl.textContent = state.moisture.toFixed(1);
 
-    update16x2LcdText();
+    update20x4LcdText();
     updateDryingSessionProgressUI();
     computeAndRenderCalibrationMetrics(false);
 
@@ -2187,7 +2187,7 @@ function initNavigationAndSidebar() {
       moisture_probe_reading: state.moisture
     });
 
-    showToast("SHT31, Moisture Probe & 16x2 I2C LCD synchronized.");
+    showToast("SHT31, Moisture Probe & 20x4 I2C LCD synchronized.");
   });
 }
 
@@ -2278,7 +2278,7 @@ function initSupabaseRealtime() {
             addNotification(highTempMsg, true, true, highTempMsg);
           }
 
-          update16x2LcdText();
+          update20x4LcdText();
           updateDryingSessionProgressUI();
           computeAndRenderCalibrationMetrics(true);
         }
