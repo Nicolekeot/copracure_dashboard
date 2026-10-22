@@ -1,0 +1,166 @@
+-- ============================================================================
+-- COPRACURE SUPABASE DATABASE SCHEMA
+-- Based on Figure 3.6: Entity Relationship Diagram (Chapters 1-3 Manuscript)
+-- ============================================================================
+
+-- Paganahin ang UUID extension para sa mga Primary Keys
+CREATE EXTENSION IF NOT EXISTS "pgcrypto";
+
+-- ----------------------------------------------------------------------------
+-- 1. TABLE: drying_sessions
+-- Central record ng bawat drying operation at nakakonekta sa auth.users(id)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.drying_sessions (
+    session_id TEXT PRIMARY KEY DEFAULT gen_random_uuid()::TEXT,
+    user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL,
+    start_time TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    end_time TIMESTAMPTZ,
+    status TEXT NOT NULL DEFAULT 'ACTIVE' -- e.g., 'ACTIVE', 'COMPLETED', 'INTERRUPTED'
+);
+
+-- ----------------------------------------------------------------------------
+-- 2. TABLE: copra_samples
+-- Nagtatabi ng sample records kada session, kabilang ang representative sample
+-- kung saan nakatusok ang experimental moisture probe at LFIA screening result
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.copra_samples (
+    sample_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    session_id TEXT NOT NULL REFERENCES public.drying_sessions(session_id) ON DELETE CASCADE,
+    is_representative BOOLEAN NOT NULL DEFAULT TRUE,
+    initial_moisture_mi NUMERIC(5,2) DEFAULT 50.00,
+    final_moisture_mf NUMERIC(5,2),
+    aflatoxin_lfia_result TEXT DEFAULT 'Pending Validation',
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- ----------------------------------------------------------------------------
+-- 3. TABLE: sensor_readings
+-- Time-stamped logs mula sa SHT31 (Temperature & RH) at Experimental Moisture Probe
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.sensor_readings (
+    log_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    session_id TEXT NOT NULL REFERENCES public.drying_sessions(session_id) ON DELETE CASCADE,
+    temperature NUMERIC(5,2) NOT NULL,
+    humidity NUMERIC(5,2) NOT NULL,
+    moisture_probe_reading NUMERIC(5,2) NOT NULL
+);
+
+-- ----------------------------------------------------------------------------
+-- 4. TABLE: classification_res
+-- Outputs mula sa ESP32-CAM Computer Vision Module (NONE, LOW, HIGH)
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.classification_res (
+    img_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    session_id TEXT NOT NULL REFERENCES public.drying_sessions(session_id) ON DELETE CASCADE,
+    image_reference TEXT NOT NULL,
+    category TEXT NOT NULL CHECK (category IN ('NONE', 'LOW', 'HIGH'))
+);
+
+-- ----------------------------------------------------------------------------
+-- 5. TABLE: control_events
+-- Logs ng operasyon ng 600W PTC Heater (SSR), 12V Centrifugal Blower,
+-- dalawang 12V Exhaust Fans (A & B), at 12V LED Strip
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.control_events (
+    event_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    session_id TEXT NOT NULL REFERENCES public.drying_sessions(session_id) ON DELETE CASCADE,
+    equipment_name TEXT NOT NULL,
+    event_reason TEXT NOT NULL
+);
+
+-- ----------------------------------------------------------------------------
+-- 6. TABLE: alerts
+-- Preventive alerts para sa 48H drying trajectory at visible mold warnings
+-- ----------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.alerts (
+    alert_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    session_id TEXT NOT NULL REFERENCES public.drying_sessions(session_id) ON DELETE CASCADE,
+    alert_type TEXT NOT NULL,
+    alert_status TEXT NOT NULL DEFAULT 'ACTIVE'
+);
+
+-- ============================================================================
+-- ROW LEVEL SECURITY (RLS) POLICIES
+-- Pinapayagan ang Web Dashboard at ESP32 na mag-basa (SELECT) at mag-save (INSERT)
+-- ============================================================================
+ALTER TABLE public.drying_sessions ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.copra_samples ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sensor_readings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.classification_res ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.control_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.alerts ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public read and insert on drying_sessions"
+ON public.drying_sessions FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public read and insert on copra_samples"
+ON public.copra_samples FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public read and insert on sensor_readings"
+ON public.sensor_readings FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public read and insert on classification_res"
+ON public.classification_res FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public read and insert on control_events"
+ON public.control_events FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public read and insert on alerts"
+ON public.alerts FOR ALL USING (true) WITH CHECK (true);
+
+-- ============================================================================
+-- ENABLE REALTIME SUBSCRIPTIONS
+-- Para awtomatikong mag-update ang Dashboard kapag nagpadala ng data ang ESP32
+-- ============================================================================
+ALTER PUBLICATION supabase_realtime ADD TABLE public.sensor_readings;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.classification_res;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.control_events;
+ALTER PUBLICATION supabase_realtime ADD TABLE public.alerts;
+
+-- ============================================================================
+-- INITIAL SEED DATA (BATCH-2026-001)
+-- Naglalagay ng default session at sample record para agad gumana ang testing
+-- ============================================================================
+INSERT INTO public.drying_sessions (session_id, status)
+VALUES ('BATCH-2026-001', 'ACTIVE')
+ON CONFLICT (session_id) DO NOTHING;
+
+INSERT INTO public.copra_samples (session_id, is_representative, initial_moisture_mi, final_moisture_mf, aflatoxin_lfia_result)
+VALUES ('BATCH-2026-001', TRUE, 50.0, 6.0, 'Negative (<20 ppb)');
+
+INSERT INTO public.sensor_readings (session_id, temperature, humidity, moisture_probe_reading)
+VALUES ('BATCH-2026-001', 56.1, 37.5, 13.0);
+
+INSERT INTO public.classification_res (session_id, image_reference, category)
+VALUES ('BATCH-2026-001', 'initial_tray_scan.jpg', 'NONE');
+
+-- Karagdagang Tables para sa Account Registration at SMS Notification Logs
+CREATE TABLE IF NOT EXISTS public.registered_users (
+    user_record_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    full_name TEXT NOT NULL,
+    identifier TEXT UNIQUE NOT NULL,
+    mobile_number TEXT,
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE TABLE IF NOT EXISTS public.sms_logs (
+    sms_id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+    session_id TEXT REFERENCES public.drying_sessions(session_id) ON DELETE CASCADE,
+    recipient_number TEXT NOT NULL,
+    message_body TEXT NOT NULL,
+    transmission_mode TEXT NOT NULL DEFAULT 'GSM_CELLULAR'
+);
+
+ALTER TABLE public.registered_users ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.sms_logs ENABLE ROW LEVEL SECURITY;
+
+CREATE POLICY "Allow public access on registered_users"
+ON public.registered_users FOR ALL USING (true) WITH CHECK (true);
+
+CREATE POLICY "Allow public access on sms_logs"
+ON public.sms_logs FOR ALL USING (true) WITH CHECK (true);
