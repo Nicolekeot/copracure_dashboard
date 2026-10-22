@@ -1669,31 +1669,26 @@ function initCameraSsrAndActuators() {
       }
 
       addNotification(`Control System: ${eq} turned ${isOn ? "ON" : "OFF"}.`, false, false);
+
+      // Supabase Telemetry Update (Dapat nasa loob ito ng event listener)
+      if (supabaseClient) {
+        let column = "";
+        if (eq.includes("Blower")) column = "blower";
+        else if (eq.includes("Fan A")) column = "exhaust_a";
+        else if (eq.includes("Fan B")) column = "exhaust_b";
+        else if (eq.includes("LED")) column = "led";
+
+        if (column) {
+          await supabaseClient.from("device_states").update({ [column]: isOn }).eq("id", 1);
+          insertSupabaseRecord("control_events", {
+            session_id: state.sessionId,
+            equipment_name: eq,
+            event_reason: isOn ? "Turned ON" : "Turned OFF"
+          });
+        }
+      }
     });
   });
-
-  const slider = document.getElementById("led-brightness-slider");
-  const val = document.getElementById("led-brightness-val");
-  slider?.addEventListener("input", (e) => {
-    if (val) val.textContent = `${e.target.value}%`;
-  });
-  // Supabase Telemetry Update
-    if (supabaseClient) {
-      let column = "";
-      if (eq.includes("Blower")) column = "blower";
-      else if (eq.includes("Fan A")) column = "exhaust_a";
-      else if (eq.includes("Fan B")) column = "exhaust_b";
-      else if (eq.includes("LED")) column = "led";
-
-      if (column) {
-        await supabaseClient.from("device_states").update({ [column]: isOn }).eq("id", 1);
-        insertSupabaseRecord("control_events", {
-          session_id: state.sessionId,
-          equipment_name: eq,
-          event_reason: isOn ? "Turned ON" : "Turned OFF"
-        });
-      }
-    }
 
 /* ==========================================================================
    10. PREVENTIVE ALERT MODULE (HIGH TEMP, MOLD, 48H WARNING + LCD RED ALERT)
@@ -2137,15 +2132,16 @@ function update20x4LcdText() {
     lcdScreen?.classList.remove("lcd-danger-mode");
     if (redAlertBox) redAlertBox.style.display = "none";
   }
-}
-  if (supabaseClient) {
-  supabaseClient.from("device_states").update({
-    lcd_line1: row1,
-    lcd_line2: row2,
-    lcd_alert_active: state.lcdAlertActive
-  }).eq("id", 1);
-}
 
+  // Supabase Telemetry Update (Dapat bago sumara ang function)
+  if (supabaseClient) {
+    supabaseClient.from("device_states").update({
+      lcd_line1: row1,
+      lcd_line2: row2,
+      lcd_alert_active: state.lcdAlertActive
+    }).eq("id", 1);
+  }
+}
 /* ==========================================================================
    13. NAVIGATION, SENSOR SYNC, BATCH CALCULATOR & SUPABASE
    ========================================================================== */
@@ -2318,4 +2314,5 @@ function showToast(message) {
   toast.textContent = message;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3500);
+}
 }
