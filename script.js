@@ -1689,11 +1689,11 @@ function initCameraSsrAndActuators() {
       }
     });
   });
-
+} 
 /* ==========================================================================
    10. PREVENTIVE ALERT MODULE (HIGH TEMP, MOLD, 48H WARNING + LCD RED ALERT)
    ========================================================================== */
-function initPreventiveAlertModule() {
+   function initPreventiveAlertModule() {
   const btnSimHighTemp = document.getElementById("btn-simulate-high-temp");
   const btnSimMold = document.getElementById("btn-simulate-mold");
   const btnSimRate = document.getElementById("btn-simulate-rate-warn");
@@ -2314,5 +2314,4 @@ function showToast(message) {
   toast.textContent = message;
   container.appendChild(toast);
   setTimeout(() => toast.remove(), 3500);
-}
 }
