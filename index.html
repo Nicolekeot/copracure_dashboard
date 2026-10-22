@@ -570,7 +570,15 @@
             </div>
 
             <!-- Camera Viewport -->
-            <div class="camera-viewport" id="camera-viewport">
+            <div class="camera-viewport" id="camera-viewport" style="padding: 0; overflow: hidden;">
+              <!-- ESP32-CAM Live Stream Image Tag -->
+              <img
+                src="http://192.168.254.116:81/stream"
+                alt="CopraCure ESP32-CAM Live Video"
+                style="width:100%; height:100%; object-fit:contain; background:#111; position: absolute; inset: 0; z-index: 1;"
+                onerror="this.style.display='none'; document.getElementById('cam-overlay-msg').style.display='flex';"/>
+                <!-- Mga Overlays at Controls sa ibabaw ng video -->
+            </div>
               <div class="cam-laser-line"></div>
               <div class="cam-corner top-left"></div>
               <div class="cam-corner top-right"></div>
