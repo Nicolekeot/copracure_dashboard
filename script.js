@@ -1615,6 +1615,14 @@ function initCameraSsrAndActuators() {
       false,
       false
     );
+    if (supabaseClient) {
+  supabaseClient.from("device_states").update({ heater: state.ssrEngaged }).eq("id", 1);
+  insertSupabaseRecord("control_events", {
+    session_id: state.sessionId,
+    equipment_name: "600W PTC Heater (SSR)",
+    event_reason: state.ssrEngaged ? "ENGAGED" : "DISENGAGED"
+  });
+  }
   });
 
   document.getElementById("btn-refresh-cam")?.addEventListener("click", () => {
@@ -1645,7 +1653,7 @@ function initCameraSsrAndActuators() {
   });
 
   document.querySelectorAll(".actuator-toggle").forEach((toggle) => {
-    toggle.addEventListener("change", (e) => {
+    toggle.addEventListener("change", async (e) => {
       const eq = e.target.getAttribute("data-equipment");
       const iconBoxId = e.target.getAttribute("data-icon-box");
       const isOn = e.target.checked;
@@ -1669,7 +1677,23 @@ function initCameraSsrAndActuators() {
   slider?.addEventListener("input", (e) => {
     if (val) val.textContent = `${e.target.value}%`;
   });
-}
+  // Supabase Telemetry Update
+    if (supabaseClient) {
+      let column = "";
+      if (eq.includes("Blower")) column = "blower";
+      else if (eq.includes("Fan A")) column = "exhaust_a";
+      else if (eq.includes("Fan B")) column = "exhaust_b";
+      else if (eq.includes("LED")) column = "led";
+
+      if (column) {
+        await supabaseClient.from("device_states").update({ [column]: isOn }).eq("id", 1);
+        insertSupabaseRecord("control_events", {
+          session_id: state.sessionId,
+          equipment_name: eq,
+          event_reason: isOn ? "Turned ON" : "Turned OFF"
+        });
+      }
+    }
 
 /* ==========================================================================
    10. PREVENTIVE ALERT MODULE (HIGH TEMP, MOLD, 48H WARNING + LCD RED ALERT)
@@ -1827,6 +1851,14 @@ function initSensorCalibrationModule() {
 
       const metrics = computeAndRenderCalibrationMetrics(false);
       clearLcdRedAlert();
+
+      if (supabaseClient) {
+        supabaseClient.from("device_states").update({
+          temp_offset: metrics.tempOffset,
+          rh_offset: metrics.rhOffset,
+          mc_offset: metrics.mcOffset
+        }).eq("id", 1);
+      }
 
       const now = new Date();
       state.calibrationLogs.unshift({
@@ -2044,16 +2076,16 @@ function renderCalibrationHistoryTable() {
 }
 
 /* ==========================================================================
-   12. LOCAL 16x2 I2C LCD MODULE MIRROR (WITH RED MESSAGE ALERT)
+   12. LOCAL 20x4 I2C LCD MODULE MIRROR (WITH RED MESSAGE ALERT)
    ========================================================================== */
-function initLocal16x2LcdModal() {
+function initLocal20x4LcdModal() {
   const modal = document.getElementById("lcd-modal");
   const btnSide = document.getElementById("btn-toggle-lcd");
   const btnInline = document.getElementById("btn-inline-lcd");
   const btnClose = document.getElementById("close-lcd-modal");
 
   function openLcd() {
-    update16x2LcdText();
+    update20x4LcdText();
     modal?.classList.add("open");
   }
 
@@ -2066,17 +2098,17 @@ function triggerLcdRedAlert(shortCode16Char, fullAlertMessage) {
   state.lcdAlertActive = true;
   state.lcdAlertShortCode = shortCode16Char.slice(0, 16);
   state.lcdAlertFullText = fullAlertMessage;
-  update16x2LcdText();
+  update20x4LcdText();
 }
 
 function clearLcdRedAlert() {
   state.lcdAlertActive = false;
   state.lcdAlertShortCode = "";
   state.lcdAlertFullText = "";
-  update16x2LcdText();
+  update20x4LcdText();
 }
 
-function update16x2LcdText() {
+function update20x4LcdText() {
   const ssrTxt = state.ssrEngaged ? "ON " : "OFF";
   const row1 = `T:${state.temperature.toFixed(1)}C RH:${state.humidity.toFixed(1)}%`.slice(0, 16);
   const row2 = state.lcdAlertActive
@@ -2105,6 +2137,13 @@ function update16x2LcdText() {
     lcdScreen?.classList.remove("lcd-danger-mode");
     if (redAlertBox) redAlertBox.style.display = "none";
   }
+}
+  if (supabaseClient) {
+  supabaseClient.from("device_states").update({
+    lcd_line1: row1,
+    lcd_line2: row2,
+    lcd_alert_active: state.lcdAlertActive
+  }).eq("id", 1);
 }
 
 /* ==========================================================================
