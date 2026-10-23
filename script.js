@@ -2232,7 +2232,7 @@ function update20x4LcdText() {
   if (imgElement) {
     const timestamp = new Date().getTime();
     // Kumukuha ng pinakabagong larawan mula sa Supabase Storage URL
-    imgElement.src = `src=https://wvpyqzzcfzwtmcfaeejz.supabase.co/storage/v1/object/public/copra-snapshots/latest.jpg?t=${timestamp}`;
+    imgElement.src = `https://wvpyqzzcfzwtmcfaeejz.supabase.co/storage/v1/object/public/copra-snapshots/latest.jpg?t=${timestamp}`;
   }
 }
 
